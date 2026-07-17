@@ -1,0 +1,15 @@
+{
+  "rateLimitsByLimitId": {
+    "codex": {
+      "limitId": "codex",
+      "planType": "plus",
+      "primary": { "usedPercent": -4, "windowDurationMins": 10080, "resetsAt": null }
+    },
+    "future-bucket": {
+      "limitId": "future-bucket",
+      "limitName": "Future",
+      "primary": { "usedPercent": 130, "windowDurationMins": 1440, "resetsAt": 1784700000 },
+      "newServerField": { "safe": true }
+    }
+  }
+}

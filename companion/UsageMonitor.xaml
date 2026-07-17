@@ -1,0 +1,432 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="Codex Usage Monitor" Width="576" Height="404"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" Topmost="True" ShowInTaskbar="False"
+        FontFamily="Segoe UI Variable Text, Microsoft YaHei UI, Segoe UI"
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
+  <Window.Resources>
+    <SolidColorBrush x:Key="CanvasBrush" Color="#EAF2FF"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#F8FBFF"/>
+    <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#DDEBFF"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#B8C8E2"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#101827"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#35445C"/>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#5C6C83"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#376DFF"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#087C61"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#986000"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#C23745"/>
+    <SolidColorBrush x:Key="UnavailableBrush" Color="#64748B"/>
+    <SolidColorBrush x:Key="FocusRingBrush" Color="#376DFF"/>
+    <SolidColorBrush x:Key="ChromeButtonBrush" Color="#45FFFFFF"/>
+    <SolidColorBrush x:Key="ChromeButtonBorderBrush" Color="#80FFFFFF"/>
+    <SolidColorBrush x:Key="OrbOperationBrush" Color="#12376DFF"/>
+    <SolidColorBrush x:Key="OrbOperationBorderBrush" Color="#2E376DFF"/>
+    <SolidColorBrush x:Key="OrbActionBrush" Color="#0A000000"/>
+    <SolidColorBrush x:Key="OrbActionBorderBrush" Color="#17000000"/>
+    <LinearGradientBrush x:Key="OrbSurfaceBrush" MappingMode="Absolute" StartPoint="0,0" EndPoint="79.8907,276.955">
+      <GradientStop Color="#DBFFFFFF" Offset="0"/>
+      <GradientStop Color="#CCF0F8FF" Offset="0.55"/>
+      <GradientStop Color="#D1F6F2FF" Offset="1"/>
+    </LinearGradientBrush>
+    <RadialGradientBrush x:Key="OrbGlowBrush" MappingMode="Absolute" Center="52,75" GradientOrigin="52,75" RadiusX="286" RadiusY="82.5">
+      <GradientStop Color="#0F376DFF" Offset="0"/>
+      <GradientStop Color="#00376DFF" Offset="1"/>
+    </RadialGradientBrush>
+    <SolidColorBrush x:Key="OrbOuterBorderBrush" Color="#E6AEBFD9"/>
+    <SolidColorBrush x:Key="OrbTopHighlightBrush" Color="#F0FFFFFF"/>
+    <SolidColorBrush x:Key="OrbHandleBorderBrush" Color="#99FFFFFF"/>
+    <LinearGradientBrush x:Key="OrbHandleBrush" MappingMode="Absolute" StartPoint="0,0" EndPoint="100.912,39.0195">
+      <GradientStop Color="#1F376DFF" Offset="0"/>
+      <GradientStop Color="#4D9B69FF" Offset="1"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="CardBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+      <GradientStop Color="#F4F8FF" Offset="0"/>
+      <GradientStop Color="#E6F7F2" Offset="0.52"/>
+      <GradientStop Color="#EEE9FF" Offset="1"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="HeroSurfaceBrush" StartPoint="0,0" EndPoint="1,1">
+      <GradientStop Color="#F9FCFF" Offset="0"/>
+      <GradientStop Color="#DCEBFF" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="TokenSurfaceBrush" Color="#DCE8F7"/>
+    <SolidColorBrush x:Key="RailBrush" Color="#B9C9DE"/>
+    <Geometry x:Key="ModeGridGeometry">M6,2 H2.6667 C2.2985,2 2,2.2985 2,2.6667 V7.3333 C2,7.7015 2.2985,8 2.6667,8 H6 C6.3682,8 6.6667,7.7015 6.6667,7.3333 V2.6667 C6.6667,2.2985 6.3682,2 6,2 M13.3333,2 H10 C9.6318,2 9.3333,2.2985 9.3333,2.6667 V4.6667 C9.3333,5.0349 9.6318,5.3333 10,5.3333 H13.3333 C13.7015,5.3333 14,5.0349 14,4.6667 V2.6667 C14,2.2985 13.7015,2 13.3333,2 M13.3333,8 H10 C9.6318,8 9.3333,8.2985 9.3333,8.6667 V13.3333 C9.3333,13.7015 9.6318,14 10,14 H13.3333 C13.7015,14 14,13.7015 14,13.3333 V8.6667 C14,8.2985 13.7015,8 13.3333,8 M6,10.6667 H2.6667 C2.2985,10.6667 2,10.9651 2,11.3333 V13.3333 C2,13.7015 2.2985,14 2.6667,14 H6 C6.3682,14 6.6667,13.7015 6.6667,13.3333 V11.3333 C6.6667,10.9651 6.3682,10.6667 6,10.6667</Geometry>
+    <Geometry x:Key="ModeListGeometry">M10,8 H2 M11.3333,12 H2 M14,4 H2</Geometry>
+    <Geometry x:Key="RefreshGeometry">M1.5,6 C1.5,4.80653 1.97411,3.66193 2.81802,2.81802 C3.66193,1.97411 4.80653,1.5 6,1.5 C7.25802,1.50473 8.46552,1.99561 9.37,2.87 L10.5,4 M10.5,1.5 V4 H8 M10.5,6 C10.5,7.19347 10.0259,8.33807 9.18198,9.18198 C8.33807,10.0259 7.19347,10.5 6,10.5 C4.74198,10.4953 3.53448,10.0044 2.63,9.13 L1.5,8 M4,8 H1.5 V10.5</Geometry>
+    <Geometry x:Key="AutoSunGeometry">M7.175,9.775 A2.6,2.6 0 1 0 7.175,4.575 A2.6,2.6 0 1 0 7.175,9.775 M7.175,0.675 V2.375 M7.175,11.975 V13.675 M0.675,7.175 H2.375 M2.275,2.275 L3.375,3.375 M2.275,12.075 L3.375,10.975</Geometry>
+    <Geometry x:Key="AutoMoonGeometry">M0.675,0.675 C2.475,1.675 3.675,2.875 3.675,4.175 C3.675,5.475 2.475,6.675 0.675,7.675 C2.975,7.375 4.875,5.975 4.875,4.175 C4.875,2.375 2.975,0.975 0.675,0.675 Z</Geometry>
+
+    <Style x:Key="LabelText" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style x:Key="CaptionText" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="LineHeight" Value="19"/>
+    </Style>
+    <Style x:Key="MetricText" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+      <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI"/>
+      <Setter Property="FontSize" Value="22"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+      <Setter Property="Typography.NumeralStyle" Value="Lining"/>
+    </Style>
+    <Style x:Key="IconButton" TargetType="Button">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource ChromeButtonBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource ChromeButtonBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Width" Value="36"/>
+      <Setter Property="Height" Value="36"/>
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons"/>
+      <Setter Property="FontSize" Value="16"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="ButtonSurface" CornerRadius="18" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonSurface" Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/></Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ButtonSurface" Property="BorderBrush" Value="{DynamicResource FocusRingBrush}"/><Setter TargetName="ButtonSurface" Property="BorderThickness" Value="2"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="OrbActionButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
+      <Setter Property="Width" Value="34"/>
+      <Setter Property="Height" Value="34"/>
+      <Setter Property="Background" Value="{DynamicResource OrbActionBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource OrbActionBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="0.667"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="ButtonSurface" CornerRadius="17" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonSurface" Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/></Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ButtonSurface" Property="BorderBrush" Value="{DynamicResource FocusRingBrush}"/><Setter TargetName="ButtonSurface" Property="BorderThickness" Value="2"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <Grid>
+    <Border x:Name="CardRoot" Margin="8" CornerRadius="34" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="21,22,28,20">
+      <Border.Effect><DropShadowEffect BlurRadius="48" ShadowDepth="10" Opacity="0.18" Color="#376DFF"/></Border.Effect>
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="36"/>
+          <RowDefinition Height="20"/>
+          <RowDefinition x:Name="MainContentRow" Height="214"/>
+          <RowDefinition Height="0"/>
+          <RowDefinition Height="75"/>
+          <RowDefinition Height="0"/>
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="CardDragArea" Grid.Row="0" Background="Transparent">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <Button x:Name="HeaderClientButton" Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand" ToolTip="切换 Codex / ZCode" VerticalAlignment="Center" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <TextBlock x:Name="BrandText" Text="CODEX" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+              <TextBlock Text="&#x00B7;" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="16" Margin="5,0" VerticalAlignment="Center"/>
+              <Border x:Name="PlanPill" Background="Transparent" Padding="0">
+                <TextBlock x:Name="PlanText" Text="PLUS" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="16" FontWeight="SemiBold"/>
+              </Border>
+            </StackPanel>
+          </Button>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button x:Name="ThemeButton" Style="{StaticResource IconButton}" ToolTip="主题：自动 / 深色 / 浅色" AutomationProperties.Name="切换主题"><Viewbox Width="16" Height="16"><Canvas Width="16" Height="16" ClipToBounds="True"><Path Data="{StaticResource AutoSunGeometry}" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.35" StrokeStartLineCap="Round" Canvas.Left="0" Canvas.Top="0.8"><Path.Clip><RectangleGeometry Rect="0,0,7.8,16"/></Path.Clip></Path><Path Data="{StaticResource AutoMoonGeometry}" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.35" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Canvas.Left="10" Canvas.Top="3.8"/><Path Data="M8,2 V14" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="0.7" Opacity="0.35"/></Canvas></Viewbox></Button>
+            <Button x:Name="CardModeButton" Style="{StaticResource IconButton}" Margin="8,0,0,0" ToolTip="显示模式" AutomationProperties.Name="切换显示模式">
+              <Viewbox Width="16" Height="16"><Canvas Width="16" Height="16"><Path Data="{StaticResource ModeGridGeometry}" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.333" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Canvas></Viewbox>
+            </Button>
+            <Button x:Name="CloseButton" Content="&#xE8BB;" Style="{StaticResource IconButton}" Margin="8,0,0,0" ToolTip="退出" AutomationProperties.Name="退出"/>
+          </StackPanel>
+        </Grid>
+
+        <Grid x:Name="CodexQuotaPanel" Grid.Row="2">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="352"/><ColumnDefinition Width="20"/><ColumnDefinition Width="1"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Border Grid.Column="2" Width="1" Background="{DynamicResource BorderBrush}" Margin="0,4"/>
+
+          <Border x:Name="HeroLeftSurface" Grid.Column="0" CornerRadius="0" Background="Transparent" BorderThickness="0">
+            <Grid>
+              <Grid x:Name="HeroFivePanel">
+                <Grid.RowDefinitions><RowDefinition Height="19"/><RowDefinition Height="98"/><RowDefinition Height="14"/><RowDefinition Height="7"/><RowDefinition Height="30"/><RowDefinition Height="26"/></Grid.RowDefinitions>
+                <TextBlock x:Name="HeroFiveLabel" Text="5 小时剩余" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="13"/>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Center">
+                  <TextBlock x:Name="HeroFiveValue" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="90" FontWeight="Bold" Typography.NumeralAlignment="Tabular"/>
+                  <TextBlock x:Name="HeroFiveUnit" Text="%" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="44" FontWeight="SemiBold" VerticalAlignment="Bottom" Margin="3,0,0,12"/>
+                </StackPanel>
+                <Grid Grid.Row="3" ClipToBounds="True">
+                  <Border CornerRadius="4" Background="{DynamicResource RailBrush}"/>
+                  <Border x:Name="HeroFiveRail" Width="0" HorizontalAlignment="Left" CornerRadius="4" Background="{DynamicResource AccentBrush}"/>
+                </Grid>
+                <TextBlock x:Name="HeroFiveStatus" Grid.Row="4" Text="— 服务未提供" FontSize="14" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,6,0,0">
+                  <TextBlock Text="&#xE823;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="13" Margin="0,1,5,0"/>
+                  <TextBlock x:Name="HeroFiveReset" Text="" Style="{StaticResource CaptionText}" FontSize="14"/>
+                </StackPanel>
+              </Grid>
+
+              <Grid x:Name="HeroWeekPanel" Visibility="Collapsed">
+                <Grid Width="198" Height="198" VerticalAlignment="Center" HorizontalAlignment="Center">
+                  <Ellipse Stroke="{DynamicResource RailBrush}" StrokeThickness="8" Margin="4"/>
+                  <Ellipse Stroke="{DynamicResource SurfaceElevatedBrush}" StrokeThickness="1" Margin="21" Opacity="0.72"/>
+                  <Path x:Name="HeroWeekArc" Width="198" Height="198" Stretch="None" Stroke="{DynamicResource AccentBrush}" StrokeThickness="8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                  <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="每周剩余" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,3,0,0">
+                      <TextBlock x:Name="HeroWeekValue" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="60" FontWeight="Bold" Typography.NumeralAlignment="Tabular"/>
+                      <TextBlock x:Name="HeroWeekUnit" Text="%" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="32" FontWeight="SemiBold" VerticalAlignment="Bottom" Margin="3,0,0,8"/>
+                    </StackPanel>
+                    <TextBlock x:Name="HeroWeekStatus" Text="— 服务未提供" Foreground="{DynamicResource UnavailableBrush}" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                  </StackPanel>
+                </Grid>
+              </Grid>
+
+              <StackPanel x:Name="HeroUnavailablePanel" Visibility="Collapsed" VerticalAlignment="Center">
+                <TextBlock Text="配额" Style="{StaticResource LabelText}"/>
+                <TextBlock Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="48" FontWeight="Bold" Margin="0,1,0,0"/>
+                <TextBlock Text="服务未提供" Foreground="{DynamicResource UnavailableBrush}" FontSize="15" FontWeight="SemiBold" Margin="0,1,0,0"/>
+                <TextBlock Text="不会用 Token 估算配额" Style="{StaticResource CaptionText}" Margin="0,7,0,0"/>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <Border x:Name="HeroSideSurface" Grid.Column="4" CornerRadius="0" Background="Transparent" BorderThickness="0">
+            <Grid>
+              <Grid x:Name="SideWeekPanel">
+                <Grid.RowDefinitions><RowDefinition Height="23"/><RowDefinition Height="126"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <TextBlock Text="每周" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                <Grid Grid.Row="1" Width="126" Height="126" HorizontalAlignment="Center" VerticalAlignment="Center">
+                  <Ellipse Width="118" Height="118" Stroke="{DynamicResource RailBrush}" StrokeThickness="7"/>
+                  <Ellipse Width="98" Height="98" Stroke="{DynamicResource SurfaceElevatedBrush}" StrokeThickness="1" Opacity="0.72"/>
+                  <Path x:Name="SideWeekArc" Width="126" Height="126" Stretch="None" Stroke="{DynamicResource AccentBrush}" StrokeThickness="7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,0">
+                      <TextBlock x:Name="SideWeekValue" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="42" FontWeight="Bold" Typography.NumeralAlignment="Tabular"/>
+                      <TextBlock x:Name="SideWeekUnit" Text="%" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Bottom" Margin="2,0,0,5"/>
+                    </StackPanel>
+                    <TextBlock x:Name="SideWeekStatus" Text="服务未提供" Style="{StaticResource CaptionText}" FontSize="12" HorizontalAlignment="Center"/>
+                  </StackPanel>
+                </Grid>
+                <TextBlock x:Name="SideWeekReset" Grid.Row="2" Text="" Style="{StaticResource CaptionText}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
+              </Grid>
+
+              <Grid x:Name="SideTodayPanel" Visibility="Collapsed">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                  <TextBlock Text="&#xE823;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="18" Margin="0,1,8,0"/>
+                  <TextBlock x:Name="HeroWeekReset" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                </StackPanel>
+                <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                  <TextBlock Text="今日 Token" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="16" FontWeight="SemiBold"/>
+                  <TextBlock x:Name="SideTodayValue" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="34" LineHeight="42" FontWeight="Bold" Typography.NumeralAlignment="Tabular" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
+                  <TextBlock Text="本机聚合" Style="{StaticResource CaptionText}" FontSize="14"/>
+                </StackPanel>
+              </Grid>
+            </Grid>
+          </Border>
+        </Grid>
+
+        <Grid x:Name="ZcodeSummaryPanel" Grid.Row="2" Visibility="Collapsed">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="375"/><ColumnDefinition Width="20"/><ColumnDefinition Width="1"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Border x:Name="ZcodeHeroSurface" Grid.Column="0" Background="Transparent" BorderThickness="0">
+            <StackPanel VerticalAlignment="Top">
+              <TextBlock x:Name="ZcodeHeroLabel" Text="今日 Token" Style="{StaticResource CaptionText}" FontSize="13"/>
+              <TextBlock x:Name="ZcodeTodayValue" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="60" FontWeight="Bold" Typography.NumeralAlignment="Tabular" Margin="-2,2,0,0"/>
+              <TextBlock x:Name="ZcodeNotice" Text="● 充足" Foreground="{DynamicResource SuccessBrush}" FontSize="14" FontWeight="SemiBold" Margin="0,2,0,0"/>
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="2" Width="1" Background="{DynamicResource BorderBrush}" Margin="0,4"/>
+          <Border x:Name="ZcodeSideSurface" Grid.Column="4" Background="Transparent" BorderThickness="0">
+            <Grid>
+              <Grid.RowDefinitions><RowDefinition Height="55"/><RowDefinition Height="16"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+              <StackPanel>
+                <TextBlock x:Name="ZcodeSideMetricLabel" Text="本机累计" Style="{StaticResource CaptionText}" FontSize="13"/>
+                <TextBlock x:Name="ZcodeTotalValue" Text="—" Style="{StaticResource MetricText}" FontSize="26" Margin="0,0,0,0"/>
+                <TextBlock x:Name="ZcodeSideNotice" Text="" Visibility="Collapsed"/>
+              </StackPanel>
+              <StackPanel Grid.Row="2">
+                <TextBlock Text="模型" Style="{StaticResource CaptionText}" FontSize="13"/>
+                <TextBlock x:Name="ZcodeModelValue" Text="—" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
+              </StackPanel>
+            </Grid>
+          </Border>
+        </Grid>
+
+        <Border x:Name="TokenSummaryPanel" Grid.Row="4" CornerRadius="22" Background="{DynamicResource TokenSurfaceBrush}" BorderBrush="{DynamicResource SurfaceElevatedBrush}" BorderThickness="1" Padding="22,13">
+          <Grid>
+            <Grid x:Name="TokenSummaryThree" Width="280" HorizontalAlignment="Left">
+              <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0"><StackPanel Orientation="Horizontal"><Ellipse Width="6" Height="6" Fill="#3B9CFF" Margin="0,0,8,0"/><TextBlock Text="当前任务" Style="{StaticResource CaptionText}"/></StackPanel><TextBlock x:Name="CurrentTokens" Text="—" Style="{StaticResource MetricText}" Margin="14,2,0,0"/></StackPanel>
+              <StackPanel Grid.Column="1"><StackPanel Orientation="Horizontal"><Ellipse Width="6" Height="6" Fill="#4BD6A4" Margin="0,0,8,0"/><TextBlock Text="今日" Style="{StaticResource CaptionText}"/></StackPanel><TextBlock x:Name="TodayTokens" Text="—" Style="{StaticResource MetricText}" Margin="14,2,0,0"/></StackPanel>
+              <StackPanel Grid.Column="2"><StackPanel Orientation="Horizontal"><Ellipse Width="6" Height="6" Fill="#8D70FF" Margin="0,0,8,0"/><TextBlock Text="本机累计" Style="{StaticResource CaptionText}"/></StackPanel><TextBlock x:Name="LifetimeTokens" Text="—" Style="{StaticResource MetricText}" Margin="14,2,0,0"/></StackPanel>
+            </Grid>
+            <Grid x:Name="TokenSummaryTwo" Width="182" HorizontalAlignment="Left" Visibility="Collapsed">
+              <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0"><TextBlock Text="当前任务" Style="{StaticResource CaptionText}"/><TextBlock x:Name="CurrentTokensCompact" Text="—" Style="{StaticResource MetricText}" Margin="0,2,0,0"/></StackPanel>
+              <StackPanel Grid.Column="1"><TextBlock Text="本机累计" Style="{StaticResource CaptionText}"/><TextBlock x:Name="LifetimeTokensCompact" Text="—" Style="{StaticResource MetricText}" Margin="0,2,0,0"/></StackPanel>
+            </Grid>
+            <Grid x:Name="ZcodeTokenBreakdown" Width="182" HorizontalAlignment="Left" Visibility="Collapsed">
+              <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0"><TextBlock Text="今日 Token" Style="{StaticResource CaptionText}"/><TextBlock x:Name="ZcodeInputValue" Text="—" Style="{StaticResource MetricText}" Margin="0,2,0,0"/></StackPanel>
+              <StackPanel Grid.Column="1"><TextBlock Text="本机累计" Style="{StaticResource CaptionText}"/><TextBlock x:Name="ZcodeCachedValue" Text="—" Style="{StaticResource MetricText}" Margin="0,2,0,0"/></StackPanel>
+              <TextBlock x:Name="ZcodeOutputValue" Visibility="Collapsed"/>
+            </Grid>
+            <Button x:Name="RefreshButton" Background="Transparent" BorderThickness="0" Padding="4" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="Hand" ToolTip="立即刷新" AutomationProperties.Name="立即刷新">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Viewbox Width="12" Height="12" VerticalAlignment="Center" Margin="0,0,4,0"><Path Data="{StaticResource RefreshGeometry}" Stroke="{DynamicResource TextTertiaryBrush}" StrokeThickness="1" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Viewbox>
+                <TextBlock x:Name="UpdateText" Text="正在连接…" Style="{StaticResource CaptionText}" FontSize="13"/>
+              </StackPanel>
+            </Button>
+          </Grid>
+        </Border>
+      </Grid>
+    </Border>
+
+    <Grid x:Name="BarRoot" Visibility="Collapsed" Background="Transparent">
+      <Border x:Name="BarSurface" Height="40" CornerRadius="9" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="14,0,9,0">
+        <Border.Effect><DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.24" Color="#15233A"/></Border.Effect>
+        <Grid ClipToBounds="True">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <Grid Grid.Column="0" ClipToBounds="True">
+            <TextBlock x:Name="BarCodexContent" HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Segoe UI Variable Text, Microsoft YaHei UI" FontSize="14" LineHeight="20" TextTrimming="CharacterEllipsis">
+              <Run x:Name="BarClient" Text="CODEX" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="Bold"/><Run Text="  5H " Foreground="{DynamicResource TextTertiaryBrush}"/><Run x:Name="BarFiveRemaining" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/><Run Text="  |  周 " Foreground="{DynamicResource TextTertiaryBrush}"/><Run x:Name="BarWeekRemaining" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/><Run x:Name="BarWeekDot" Text="" Foreground="{DynamicResource SuccessBrush}"/><Run Text="  |  今日 " Foreground="{DynamicResource TextTertiaryBrush}"/><Run x:Name="BarTodayTokens" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/><Run Text="  |  " Foreground="{DynamicResource TextTertiaryBrush}"/><Run x:Name="BarReset" Text="服务未提供" Foreground="{DynamicResource TextTertiaryBrush}"/>
+            </TextBlock>
+            <TextBlock x:Name="BarZcodeContent" Visibility="Collapsed" HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Segoe UI Variable Text, Microsoft YaHei UI" FontSize="14" LineHeight="20" TextTrimming="CharacterEllipsis">
+              <Run Text="ZCODE" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="Bold"/><Run Text="  今日 " Foreground="{DynamicResource TextTertiaryBrush}"/><Run x:Name="BarZcodeToday" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/><Run Text="  |  累计 " Foreground="{DynamicResource TextTertiaryBrush}"/><Run x:Name="BarZcodeTotal" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/><Run Text="  |  模型 " Foreground="{DynamicResource TextTertiaryBrush}"/><Run x:Name="BarZcodeModel" Text="—" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
+            </TextBlock>
+          </Grid>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+            <Button x:Name="BarModeButton" Style="{StaticResource IconButton}" Width="30" Height="30" ToolTip="切换到卡片" AutomationProperties.Name="切换到卡片"><Viewbox Width="14" Height="14"><Canvas Width="16" Height="16"><Path Data="{StaticResource ModeGridGeometry}" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.333" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Canvas></Viewbox></Button>
+            <Button x:Name="BarCloseButton" Content="&#xE8BB;" Style="{StaticResource IconButton}" Width="30" Height="30" FontSize="14" ToolTip="收起为悬浮球" AutomationProperties.Name="收起为悬浮球"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <Grid x:Name="OrbRoot" Visibility="Collapsed">
+      <Border x:Name="OrbCollapsed" Visibility="Visible" Width="72" Height="108" HorizontalAlignment="Right" VerticalAlignment="Center" CornerRadius="36" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Cursor="Hand" ToolTip="点击展开 · 拖动后自动贴边">
+        <Border.Effect><DropShadowEffect BlurRadius="24" ShadowDepth="5" Opacity="0.28" Color="#15233A"/></Border.Effect>
+        <Grid x:Name="OrbDragArea" Background="Transparent">
+          <Grid.RowDefinitions><RowDefinition Height="13"/><RowDefinition Height="64"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Ellipse Width="3" Height="3" Fill="{DynamicResource TextTertiaryBrush}" Margin="2,0"/>
+            <Ellipse Width="3" Height="3" Fill="{DynamicResource TextTertiaryBrush}" Margin="2,0"/>
+            <Ellipse Width="3" Height="3" Fill="{DynamicResource TextTertiaryBrush}" Margin="2,0"/>
+          </StackPanel>
+          <Grid Grid.Row="1" Width="60" Height="60" HorizontalAlignment="Center">
+            <Ellipse Width="54" Height="54" Stroke="{DynamicResource RailBrush}" StrokeThickness="5"/>
+            <Ellipse Width="43" Height="43" Stroke="{DynamicResource SurfaceElevatedBrush}" StrokeThickness="1" Opacity="0.72"/>
+            <Path x:Name="OrbArc" Width="60" Height="60" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="None" Stroke="{DynamicResource AccentBrush}" StrokeThickness="5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+              <TextBlock x:Name="OrbTokens" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="18" FontWeight="Bold" Typography.NumeralAlignment="Tabular" HorizontalAlignment="Center"/>
+              <TextBlock x:Name="OrbLabel" Text="周" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,-2,0,0"/>
+            </StackPanel>
+          </Grid>
+          <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Ellipse x:Name="OrbStatusDot" Width="11" Height="11" Fill="{DynamicResource SuccessBrush}" Stroke="{DynamicResource SurfaceElevatedBrush}" StrokeThickness="2"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border x:Name="OrbExpanded" Visibility="Collapsed" Background="Transparent" BorderThickness="0" Padding="0" ClipToBounds="True">
+        <Border.Effect><DropShadowEffect BlurRadius="28" ShadowDepth="6" Opacity="0.28" Color="#15233A"/></Border.Effect>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="390"/>
+            <ColumnDefinition Width="12"/>
+            <ColumnDefinition Width="44"/>
+            <ColumnDefinition Width="16"/>
+            <ColumnDefinition Width="58"/>
+          </Grid.ColumnDefinitions>
+
+          <Canvas Grid.ColumnSpan="5" Width="520" Height="150" IsHitTestVisible="False">
+            <Path x:Name="OrbSurfacePath" Width="520" Height="150" Stretch="None" Data="M28,0 H520 V150 H28 C20.5739,150 13.452,147.05 8.20101,141.799 C2.94999,136.548 0,129.426 0,122 V28 C0,20.5739 2.94999,13.452 8.20101,8.20101 C13.452,2.94999 20.5739,0 28,0 Z" Fill="{DynamicResource OrbSurfaceBrush}"/>
+            <Path x:Name="OrbGlowPath" Width="520" Height="150" Stretch="None" Data="M28,0 H520 V150 H28 C20.5739,150 13.452,147.05 8.20101,141.799 C2.94999,136.548 0,129.426 0,122 V28 C0,20.5739 2.94999,13.452 8.20101,8.20101 C13.452,2.94999 20.5739,0 28,0 Z" Fill="{DynamicResource OrbGlowBrush}"/>
+            <Path Data="M28,0.75 H520" Stroke="{DynamicResource OrbTopHighlightBrush}" StrokeThickness="1.5"/>
+            <Path Width="520" Height="150" Stretch="None" Data="M28,0 H520 V150 H28 C20.5739,150 13.452,147.05 8.20101,141.799 C2.94999,136.548 0,129.426 0,122 V28 C0,20.5739 2.94999,13.452 8.20101,8.20101 C13.452,2.94999 20.5739,0 28,0 Z" Fill="Transparent" Stroke="{DynamicResource OrbOuterBorderBrush}" StrokeThickness="2"/>
+          </Canvas>
+
+          <Canvas x:Name="OrbExpDragArea" Grid.Column="0" Width="390" Height="150" Background="Transparent">
+            <TextBlock x:Name="OrbExpTitle" Canvas.Left="24" Canvas.Top="14" Text="CODEX &#x00B7; PLUS" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Segoe UI Variable Text" FontSize="13" LineHeight="19" FontWeight="Bold"/>
+            <Grid Canvas.Left="24" Canvas.Top="45.5" Width="366" Height="59">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="118.229"/><ColumnDefinition Width="1"/><ColumnDefinition Width="72.885"/><ColumnDefinition Width="1"/><ColumnDefinition Width="79.344"/><ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" Width="118.229" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <TextBlock x:Name="OrbPrimaryLabel" Text="每周额度" Style="{StaticResource CaptionText}" FontSize="13" LineHeight="19"/>
+                <Canvas Width="108" Height="40" HorizontalAlignment="Left">
+                  <TextBlock x:Name="OrbPrimaryValue" Canvas.Left="0" Canvas.Top="0" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="28" LineHeight="32" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular"/>
+                  <Grid Canvas.Left="68" Canvas.Top="0" Width="40" Height="40">
+                    <Ellipse Width="34" Height="34" Stroke="{DynamicResource RailBrush}" StrokeThickness="4" Opacity="0.45"/>
+                    <Path x:Name="OrbPrimaryMiniArc" Width="40" Height="40" Stretch="None" Stroke="{DynamicResource AccentBrush}" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                  </Grid>
+                </Canvas>
+              </StackPanel>
+              <Border Grid.Column="1" Width="1" Height="51" Background="{DynamicResource BorderBrush}" Opacity="0.55" VerticalAlignment="Top" Margin="0,4,0,0"/>
+              <StackPanel Grid.Column="2" Margin="16,0,0,0" VerticalAlignment="Top">
+                <TextBlock Text="重置" Style="{StaticResource CaptionText}" FontSize="13" LineHeight="19"/>
+                <TextBlock x:Name="OrbResetValue" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="16" LineHeight="24" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,-4,0,0"/>
+              </StackPanel>
+              <Border Grid.Column="3" Width="1" Height="51" Background="{DynamicResource BorderBrush}" Opacity="0.55" VerticalAlignment="Top" Margin="0,4,0,0"/>
+              <StackPanel Grid.Column="4" Margin="16,0,0,0" VerticalAlignment="Top">
+                <TextBlock x:Name="OrbTodayLabel" Text="今日 Token" Style="{StaticResource CaptionText}" FontSize="13" LineHeight="19"/>
+                <TextBlock x:Name="OrbTodayValue" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="22" LineHeight="28" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular" Margin="0,-4,0,0"/>
+              </StackPanel>
+            </Grid>
+            <StackPanel Canvas.Left="24" Canvas.Top="117" Orientation="Horizontal" Height="19">
+              <Viewbox Width="11" Height="11" VerticalAlignment="Center" Margin="0,0,4,0"><Path Data="{StaticResource RefreshGeometry}" Stroke="{DynamicResource TextTertiaryBrush}" StrokeThickness="1" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Viewbox>
+              <TextBlock x:Name="OrbUpdateText" Text="正在连接…" Style="{StaticResource CaptionText}" FontSize="13" LineHeight="19"/>
+            </StackPanel>
+          </Canvas>
+
+          <Border Grid.Column="2" Width="44" Height="116" CornerRadius="22" Background="{DynamicResource OrbOperationBrush}" BorderBrush="{DynamicResource OrbOperationBorderBrush}" BorderThickness="0.667" Padding="4.333,3.333" VerticalAlignment="Center">
+            <Border.Effect><DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.09" Color="#376DFF"/></Border.Effect>
+            <StackPanel>
+              <Button x:Name="OrbCardButton" Style="{StaticResource OrbActionButton}" ToolTip="切换到卡片" AutomationProperties.Name="切换到卡片"><Viewbox Width="15" Height="15"><Canvas Width="16" Height="16"><Path Data="{StaticResource ModeGridGeometry}" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.333" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Canvas></Viewbox></Button>
+              <Button x:Name="OrbBarButton" Style="{StaticResource OrbActionButton}" Margin="0,3,0,0" ToolTip="切换到指示条" AutomationProperties.Name="切换到指示条"><Viewbox Width="15" Height="15"><Canvas Width="16" Height="16"><Path Data="{StaticResource ModeListGeometry}" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.25" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Canvas></Viewbox></Button>
+              <Button x:Name="OrbThemeButton" Style="{StaticResource OrbActionButton}" Margin="0,3,0,0" ToolTip="切换主题" AutomationProperties.Name="切换主题"><Viewbox Width="16" Height="16"><Canvas Width="16" Height="16" ClipToBounds="True"><Path Data="{StaticResource AutoSunGeometry}" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.35" StrokeStartLineCap="Round" Canvas.Left="0" Canvas.Top="0.8"><Path.Clip><RectangleGeometry Rect="0,0,7.8,16"/></Path.Clip></Path><Path Data="{StaticResource AutoMoonGeometry}" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="1.35" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Canvas.Left="10" Canvas.Top="3.8"/><Path Data="M8,2 V14" Stroke="{DynamicResource TextSecondaryBrush}" StrokeThickness="0.7" Opacity="0.35"/></Canvas></Viewbox></Button>
+            </StackPanel>
+          </Border>
+
+          <Button x:Name="OrbCollapseButton" Grid.Column="4" Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand" ToolTip="收起悬浮球" AutomationProperties.Name="收起悬浮球">
+            <Canvas Width="58" Height="150" ClipToBounds="True">
+              <Path x:Name="OrbHandleSurface" Width="58" Height="150" Stretch="None" Data="M58,0 V150 C22,144 0,116 0,75 C0,34 22,6 58,0 Z" Fill="{DynamicResource OrbHandleBrush}"/>
+              <Path Width="58" Height="150" Stretch="None" Data="M58.5,0.493 C22.5,6.493 0.5,34.493 0.5,75.493 C0.5,116.493 22.5,144.493 58.5,150.493" Stroke="{DynamicResource OrbHandleBorderBrush}" StrokeThickness="1" Fill="Transparent"/>
+              <Grid Canvas.Left="4" Canvas.Top="38" Width="48" Height="48">
+                <Ellipse Width="42" Height="42" Stroke="{DynamicResource RailBrush}" StrokeThickness="4" Opacity="0.45"/>
+                <Path x:Name="OrbHandleArc" Width="48" Height="48" Stretch="None" Stroke="{DynamicResource AccentBrush}" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                <TextBlock x:Name="OrbHandleValue" Text="—" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="14" LineHeight="21" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Grid>
+              <Ellipse x:Name="OrbHandleDot" Canvas.Left="22.5" Canvas.Top="106.5" Width="11" Height="11" Fill="{DynamicResource SuccessBrush}"/>
+            </Canvas>
+          </Button>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <Popup x:Name="DropdownPopup" AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="False" Placement="Mouse">
+      <Border x:Name="DropdownSurface" CornerRadius="14" Background="{DynamicResource SurfaceElevatedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="7" MinWidth="205">
+        <Border.Effect><DropShadowEffect BlurRadius="20" ShadowDepth="5" Opacity="0.25" Color="#15233A"/></Border.Effect>
+        <StackPanel x:Name="DropdownPanel"/>
+      </Border>
+    </Popup>
+  </Grid>
+</Window>

@@ -1,0 +1,42 @@
+{
+  "name": "codex-usage-monitor",
+  "version": "0.2.0",
+  "description": "Read-only Codex quota and token usage monitor plugin with ZCode token tracking",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "dist/index.js",
+  "files": [
+    ".codex-plugin",
+    ".mcp.json",
+    "docs",
+    "dist",
+    "companion",
+    "scripts",
+    "LICENSE",
+    "start-floating-window.cmd",
+    "start-floating-window.vbs",
+    "skills",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.build.json",
+    "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
+    "lint": "node scripts/lint.mjs",
+    "test": "npm run build && node --test tests/*.test.js",
+    "companion": "npm run build && powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./companion/CodexUsageMonitor.ps1",
+    "install:companion": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-floating-window.ps1",
+    "install:startup": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/manage-startup.ps1 -Action Enable",
+    "uninstall:startup": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/manage-startup.ps1 -Action Disable",
+    "status:startup": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/manage-startup.ps1 -Action Status",
+    "validate:plugin": "node scripts/validate-plugin.mjs",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run validate:plugin"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^24.10.9",
+    "typescript": "^5.6.3"
+  }
+}

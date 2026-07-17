@@ -1,0 +1,28 @@
+{
+  "name": "codex-usage-monitor",
+  "version": "0.2.0",
+  "description": "Read-only Codex quota and Token usage monitor with ZCode token tracking and a floating orb.",
+  "author": {
+    "name": "Codex Usage Monitor Contributors"
+  },
+  "license": "MIT",
+  "keywords": ["codex", "zcode", "usage", "quota", "tokens"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Codex Usage Monitor",
+    "shortDescription": "查看 Codex 配额与 ZCode Token 用量",
+    "longDescription": "多客户端用量监测：通过 Codex app-server 显示官方配额，并从本机会话日志估算 Codex 与 ZCode 的 Token 用量。伴生悬浮窗支持卡片、指示条与悬浮球三态。",
+    "developerName": "Codex Usage Monitor Contributors",
+    "category": "Productivity",
+    "capabilities": ["Read-only usage", "In-conversation card", "Multi-client (Codex + ZCode)", "Floating orb"],
+    "defaultPrompt": [
+      "显示我的 Codex 用量卡片。",
+      "刷新 Codex 配额与 Token 用量。",
+      "显示最近 7 天的 Codex Token 历史。",
+      "显示 ZCode 的 Token 用量。",
+      "显示所有客户端的用量汇总。"
+    ],
+    "brandColor": "#2563EB"
+  }
+}

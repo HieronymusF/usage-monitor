@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "codex-usage-monitor": {
+      "command": "node",
+      "args": ["./dist/index.js"],
+      "cwd": "./"
+    }
+  }
+}

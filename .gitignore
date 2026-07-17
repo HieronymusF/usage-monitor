@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output — regenerate with `npm run build`
+dist/
+
+# Logs
+*.log
+
+# Figma design-system plugin (separate tool, not part of the runtime monitor)
+figma-plugin/
+
+# Internal design/UX documentation (process artifacts, not release docs)
+docs/
+
+# Transient process files
+design-qa.md
+AGENTS.md
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
