@@ -21,3 +21,8 @@ AGENTS.md
 .DS_Store
 Thumbs.db
 *.swp
+
+# Portable build artifacts
+bundle/
+*.exe
+usage-monitor-build-cache/

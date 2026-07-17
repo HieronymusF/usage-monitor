@@ -6,7 +6,16 @@ Add-Type -AssemblyName System.Drawing
 
 $ErrorActionPreference = 'Stop'
 $pluginRoot = Split-Path -Parent $PSScriptRoot
-$node = (Get-Command node -ErrorAction Stop).Source
+# Prefer a node.exe bundled alongside the plugin (portable build: <root>\node\node.exe),
+# falling back to system PATH node. This lets the portable exe run on machines
+# that have never installed Node.js.
+$bundledNode = Join-Path $pluginRoot 'node\node.exe'
+if (Test-Path -LiteralPath $bundledNode) {
+    $node = $bundledNode
+} else {
+    $node = (Get-Command node -ErrorAction SilentlyContinue).Source
+    if (-not $node) { throw '未找到 node。请安装 Node.js 20+，或使用捆绑了 node 的便携版。' }
+}
 $bridgeScript = Join-Path $pluginRoot 'dist\companionBridge.js'
 $settingsDirectory = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'CodexUsageMonitor'
 $settingsPath = Join-Path $settingsDirectory 'settings.json'
