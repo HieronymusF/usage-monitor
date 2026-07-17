@@ -1,4 +1,4 @@
-﻿# codex-usage-monitor
+﻿# usage-monitor
 
 一个只读的用量插件，并附带 Windows 常驻悬浮窗。它监测 **Codex**（官方配额 + 本机估算）和 **ZCode**（仅本机估算）的 Token 用量，显示账户配额、重置倒计时和 Token 统计，不需要在会话中反复 `@` 插件。
 
