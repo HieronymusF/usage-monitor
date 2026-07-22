@@ -1,0 +1,153 @@
+/*
+ * Global styles — Polar Aurora Glass 设计系统。
+ *
+ * 颜色值的唯一真相是 docs/ui-designs/design-tokens.json。每个 CSS variable 旁标注
+ * 对应的 JSON 行号；tokens.test.ts 断言 tokens.ts 与 JSON 一致，颜色则靠人工 review
+ * 与 visual-spec.md §4 对照。改颜色必须同时改 JSON。
+ *
+ * 主题切换：renderer 在 <html> 上加 .light 或 .dark class（见 ThemeProvider）。
+ * auto 模式由 ThemeProvider 解析为 light/dark 后写 class，不依赖 prefers-color-scheme
+ * 媒体查询（避免"系统主题"和"用户偏好"打架）。
+ */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* --------------------------------------------------------------------------
+ * Tailwind v4 @theme — 把 CSS variables 暴露成工具类 token（bg-primary 等）。
+ * 这样组件里 bg-primary / text-ink / border-border 才能解析。
+ * -------------------------------------------------------------------------- */
+@theme {
+  --color-background: var(--c-background);
+  --color-foreground: var(--c-ink);
+  --color-ink: var(--c-ink);
+  --color-secondary: var(--c-secondary);
+  --color-tertiary: var(--c-tertiary);
+  --color-primary: var(--c-accent-start);
+  --color-primary-foreground: var(--c-base-glass);
+  --color-accent-start: var(--c-accent-start);
+  --color-accent-end: var(--c-accent-end);
+  --color-success: var(--c-success);
+  --color-warning: var(--c-warning);
+  --color-danger: var(--c-danger);
+  --color-rail: var(--c-rail);
+  --color-border: var(--c-border);
+  --color-muted: var(--c-rail);
+  --color-base-glass: var(--c-base-glass);
+  --color-blue-wash: var(--c-blue-wash);
+  --color-mint-wash: var(--c-mint-wash);
+  --color-violet-wash: var(--c-violet-wash);
+
+  --radius-card: 34px;
+  --radius-tray: 22px;
+  --radius-bar: 9px;
+  --radius-orb: 36px;
+  --radius-capsule-left: 28px;
+  --radius-button36: 18px;
+  --radius-button30: 15px;
+}
+
+/* --------------------------------------------------------------------------
+ * Light theme (默认 :root) — design-tokens.json §color.light
+ * -------------------------------------------------------------------------- */
+:root,
+.light {
+  /* 文字 / 图标 — JSON §color.light.ink 等 */
+  --c-ink: #101827;
+  --c-secondary: #334455;
+  --c-tertiary: #566b82;
+  /* 强调与状态 */
+  --c-accent-start: #376dff;
+  --c-accent-end: #35b5ff;
+  --c-success: #087c61;
+  --c-warning: #986000;
+  --c-danger: #c23745;
+  /* 结构 */
+  --c-rail: #b9c9de;
+  --c-border: #d7e2f1;
+  /* 玻璃材质 4 层（visual-spec §4 材质配方） */
+  --c-base-glass: #f8fcffe6; /* 90% 不透明冷白 */
+  --c-blue-wash: #cfe8ff2e; /* 18% */
+  --c-mint-wash: #c8f7ea33; /* 20% */
+  --c-violet-wash: #ddd2ff38; /* 22% */
+  /* 阴影:visual-spec §4 主卡阴影 Y10/Blur48/Accent Blue。
+     原 18% 在透明窗口下偏强,降到 10% 更含蓄(用户反馈)。 */
+  --shadow-card: 0 10px 48px color-mix(in srgb, #376dff 10%, transparent);
+  --shadow-small: 0 8px 28px color-mix(in srgb, #101827 22%, transparent);
+
+  color-scheme: light;
+}
+
+/* --------------------------------------------------------------------------
+ * Dark theme (.dark class) — design-tokens.json §color.dark
+ * -------------------------------------------------------------------------- */
+.dark {
+  --c-ink: #ffffff;
+  --c-secondary: #c7d2e3;
+  --c-tertiary: #96a3b8;
+  --c-accent-start: #5ca6ff;
+  --c-accent-end: #38d2ff;
+  --c-success: #22c55e;
+  --c-warning: #d29922;
+  --c-danger: #f87171;
+  --c-rail: #33445e;
+  --c-border: #475569;
+  --c-base-glass: #071b33eb;
+  --c-blue-wash: #0a2443eb;
+  --c-mint-wash: #0a5b6b2e;
+  --c-violet-wash: #4a3a8e2e;
+  --shadow-card: 0 10px 48px color-mix(in srgb, #5ca6ff 10%, transparent);
+  --shadow-small: 0 8px 28px color-mix(in srgb, #000000 32%, transparent);
+
+  color-scheme: dark;
+}
+
+/* --------------------------------------------------------------------------
+ * 全局基础
+ * -------------------------------------------------------------------------- */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  margin: 0;
+  background: transparent;
+  /* 固定尺寸浮窗：锁定 overflow，杜绝 body 滚动条（DESIGN_SYSTEM.md §9/§10）。
+     内容精确填满 viewport 时，任何 1px 误差都会触发浏览器滚动条；
+     overflow:hidden 让窗口永远不可滚，符合 resizable:false 的浮窗语义。 */
+  overflow: hidden;
+}
+
+body {
+  /* visual-spec §1 字体族：正文与标签 */
+  font-family: "Segoe UI Variable Text", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  color: var(--c-ink);
+  /* 数字启用 Tabular + Lining（visual-spec §1） */
+  font-variant-numeric: tabular-nums lining-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a {
+  -webkit-app-region: no-drag;
+}
+
+/* --------------------------------------------------------------------------
+ * 无障碍：系统关闭动画时立即切换（visual-spec §8）
+ * -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

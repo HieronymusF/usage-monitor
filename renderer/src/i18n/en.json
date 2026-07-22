@@ -1,0 +1,77 @@
+{
+  "app": {
+    "name": "Usage Monitor",
+    "phase": "Electron refactor foundation is ready"
+  },
+  "surface": {
+    "card": "Card",
+    "indicator-bar": "Indicator bar",
+    "orb": "Orb",
+    "edge-capsule": "Edge capsule"
+  },
+  "status": {
+    "ready": "Renderer connected through the secure IPC bridge",
+    "loading": "Initializing desktop context"
+  },
+  "usage": {
+    "loading": "Connecting to the local read-only data bridge",
+    "clients": "Loaded data for {{count}} clients",
+    "error": "The local data bridge is temporarily unavailable"
+  },
+  "action": {
+    "switchLanguage": "切换到简体中文",
+    "switchTheme": "Toggle theme",
+    "themeAuto": "Theme: Auto",
+    "themeLight": "Theme: Light",
+    "themeDark": "Theme: Dark",
+    "switchMode": "Switch display mode",
+    "switchClient": "Switch client",
+    "refresh": "Refresh",
+    "close": "Close"
+  },
+  "brand": {
+    "codex": "CODEX · PLUS",
+    "zcode": "ZCODE · LOCAL",
+    "codexShort": "Codex",
+    "zcodeShort": "ZCode"
+  },
+  "quota": {
+    "fiveHour": "5 hours remaining",
+    "weekly": "Weekly",
+    "weeklyRemaining": "Weekly remaining",
+    "weeklyAllowance": "Weekly allowance",
+    "reset": "Resets",
+    "daysLater": "{{n}}d",
+    "hoursMinutesLater": "{{h}}h {{m}}m",
+    "minutesLater": "{{m}}m",
+    "resetUnknown": "—",
+    "unavailable": "Quota — service unavailable",
+    "weeklySide": "Weekly"
+  },
+  "health": {
+    "sufficient": "Sufficient",
+    "low": "Low",
+    "critical": "Critical",
+    "unavailable": "Service unavailable"
+  },
+  "tray": {
+    "currentTask": "Current task",
+    "today": "Today",
+    "todayToken": "Today tokens",
+    "lifetime": "Lifetime",
+    "models": "Models"
+  },
+  "bar": {
+    "localEstimate": "Local estimate",
+    "fiveHourShort": "5H",
+    "weeklyShort": "Wk"
+  },
+  "footer": {
+    "updatedAt": "Updated {{time}}",
+    "stale": "Data may be stale",
+    "errorShort": "Refresh failed",
+    "error": "Refresh failed — showing last data",
+    "loading": "Loading…",
+    "offline": "Local data bridge unavailable"
+  }
+}

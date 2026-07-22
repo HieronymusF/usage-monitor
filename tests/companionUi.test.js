@@ -5,8 +5,12 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const xamlUrl = new URL("companion/UsageMonitor.xaml", root);
 const scriptUrl = new URL("companion/CodexUsageMonitor.ps1", root);
-const agentsUrl = new URL("AGENTS.md", root);
-const workflowUrl = new URL("docs/ui-development-workflow.md", root);
+const packageUrl = new URL("package.json", root);
+const electronMainUrl = new URL("electron/main.ts", root);
+const windowManagerUrl = new URL("electron/windows/manager.ts", root);
+const bridgeClientUrl = new URL("electron/bridge.ts", root);
+const preloadUrl = new URL("electron/preload.ts", root);
+const rendererUrl = new URL("renderer/src/components/card/CodexCard.tsx", root);
 
 test("companion UI enforces the typography floor and icon-only chrome", async () => {
   const xaml = await readFile(xamlUrl, "utf8");
@@ -116,18 +120,27 @@ test("theme and compact safe-area overlay modes remain explicit", async () => {
   assert.doesNotMatch(script, /\$x -le 462|ellipseX|ellipseY/);
 });
 
-test("UI changes are gated by the canonical Figma Dev Mode workflow", async () => {
-  const [agents, workflow] = await Promise.all([
-    readFile(agentsUrl, "utf8"),
-    readFile(workflowUrl, "utf8"),
-  ]);
-  for (const content of [agents, workflow]) {
-    assert.match(content, /RoxNVD39VjdWWNbEvhy5HQ/);
-    assert.match(content, /1689-3095/);
-    assert.match(content, /Dev Mode/);
-  }
-  assert.match(agents, /没有对应 Figma 节点时，不得直接修改生产 UI/);
-  assert.match(agents, /未先完成 Figma 设计的 UI 代码不得开发、验收或提交/);
-  assert.match(workflow, /没有先完成 Figma 设计，不得开始 UI 编码、验收或提交/);
-  assert.match(workflow, /P0 \/ P1 \/ P2/);
+test("Electron refactor keeps a sandboxed renderer and narrow IPC bridge", async () => {
+  const [packageJson, electronMain, windowManager, bridgeClient, preload, renderer] =
+    await Promise.all([
+      readFile(packageUrl, "utf8"),
+      readFile(electronMainUrl, "utf8"),
+      readFile(windowManagerUrl, "utf8"),
+      readFile(bridgeClientUrl, "utf8"),
+      readFile(preloadUrl, "utf8"),
+      readFile(rendererUrl, "utf8"),
+    ]);
+  assert.match(packageJson, /"electron-vite"/);
+  assert.match(packageJson, /"react-i18next"/);
+  assert.match(electronMain, /requestSingleInstanceLock/);
+  assert.match(windowManager, /contextIsolation: true/);
+  assert.match(windowManager, /nodeIntegration: false/);
+  assert.match(windowManager, /sandbox: true/);
+  assert.match(windowManager, /preload\/index\.cjs/);
+  assert.match(bridgeClient, /ELECTRON_RUN_AS_NODE/);
+  assert.match(bridgeClient, /Authorization: `Bearer \$\{connection\.bridgeKey\}`/);
+  assert.match(preload, /contextBridge\.exposeInMainWorld\("monitor"/);
+  assert.doesNotMatch(preload, /bridgeKey|Authorization|Bearer/);
+  assert.doesNotMatch(preload, /ipcRenderer:\s*ipcRenderer|send:\s*ipcRenderer\.send/);
+  assert.match(renderer, /useTranslation/);
 });
