@@ -5,36 +5,77 @@
 - **Codex**：配额窗口、已用比例、重置时间来自 Codex app-server；Token 用量在账户接口不可用时降级为本机 session 估算。
 - **ZCode**：没有官方配额接口，只从本机会话日志估算 Token 用量（今日 / 累计 / 历史 / 按模型），不编造配额窗口或剩余百分比。
 
-## Windows 悬浮窗
+桌面端目前有**两套 Windows UI 实现**，共用同一份只读数据核心（`server/`）：
 
-悬浮窗是独立伴生程序，不修改 Codex / ZCode 官方界面；它只监听 `127.0.0.1` 上的随机端口，并使用进程内随机 bridge key 鉴权。同一台机器用 mutex 保证只跑一个实例。
+| | Electron 应用（主线开发中） | WPF 伴生程序（当前发行版） |
+|---|---|---|
+| 代码 | `electron/` + `renderer/` | `companion/`（PowerShell + XAML） |
+| 四种 surface | ✅ | ✅ |
+| 自动前台切换 / 托盘菜单 / 开机自启 / 便携 exe 分发 | ❌ 计划中（见各 milestone） | ✅ |
+| 启动 | `npm run dev` | `npm run companion` / 便携 exe |
+| 定位 | 新主线，UI 已完成 v30，系统集成待补齐 | 稳定回滚版，待 Electron 补齐功能后退役 |
+
+## Electron 桌面应用（`npm run dev`）
+
+多窗口 Electron 应用，单一 renderer bundle 按 `?surface=` 路由渲染四种形态。不修改 Codex / ZCode 官方界面；只监听 `127.0.0.1` 上的随机端口，用进程内随机 bridge key 鉴权，同一台机器用 `requestSingleInstanceLock` 保证单实例。
+
+### 四种 surface
+
+- **卡片（card）**：完整信息卡，含配额窗口、重置倒计时、今日 / 累计 Token。Codex 576×404，ZCode 576×333。
+- **指示条（indicator-bar）**：紧凑单行，Codex 4 段 + ZCode 4 段 + 切换 / 刷新按钮 + 红线（缺失数据显示「—」）。
+- **悬浮球（orb）**：82×136 贴边胶囊。Codex 优先显示 5 小时额度、其次周额度；ZCode 显示今日 Token（红线：不渲染配额 ring / 百分比）。
+- **展开态（edge-capsule）**：720×180，主卡片 + 右侧弧形翼片（圆环 + 状态点 + 操作栏）。Codex 显示 CODEX·PLUS / 每周额度 / 64% + 重置倒计时 / 今日 Token；ZCode 显示今日 / 累计 / 模型。
+
+### 主题
+
+支持 **深色 / 浅色 / 自动** 三档主题（单按钮循环 auto→light→dark）；自动主题跟随系统。状态同时使用颜色和「充足 / 偏低 / 紧张」文字，不只靠颜色表达。
+
+> 主题偏好目前仅保存在内存，**持久化计划在后续 milestone**。
+
+### 运行
+
+要求 Node.js 20+ 与可用的 `codex` 命令（Codex 配额读取需要；ZCode 监测不需要）。
+
+```powershell
+npm install
+npm run dev          # 开发模式（带 HMR）
+# 或指定 surface + 预览数据：
+SURFACE=edge-capsule CARD_PREVIEW=dual npm run dev
+```
+
+### 尚未实现（计划中）
+
+以下功能 WPF 伴生程序已具备，Electron 侧待补齐：
+
+- **自动前台窗口切换**（按前台进程切换 surface）—— milestone D-3
+- **系统托盘菜单**（右键切换 surface / 客户端）—— milestone E-F
+- **设置持久化**（settings.json）—— milestone G
+- **开机自启** —— 待实现
+- **便携 exe 打包分发** —— 待实现
+
+## WPF 伴生程序（当前发行版，`companion/`）
+
+Electron 版功能补齐前的稳定 Windows 发行版，具备自动前台切换、托盘菜单、开机自启和便携 exe 分发。PowerShell + XAML 实现，通过同一份数据核心（`server/companionBridge.ts` HTTP 桥）获取用量。
 
 ### 四种显示模式
 
 - **自动**：根据前台窗口自动切换。Codex / ChatGPT 前台显示卡片；ZCode / VS Code / Cursor / Windsurf 前台显示指示条；其他应用前台收起为悬浮球。
 - **卡片**：始终显示完整卡片，含配额窗口、重置倒计时、当前任务 / 今日 / 累计 Token。
-- **指示条**：紧凑单行，贴附在目标 IDE 窗口下方，避开右侧系统按钮区，不再用透明全宽窗口遮挡菜单栏。
+- **指示条**：紧凑单行，贴附在目标 IDE 窗口下方，避开右侧系统按钮区。
 - **悬浮球**：屏幕角落的贴边胶囊。Codex 优先显示 5 小时额度、其次显示周额度；ZCode 显示今日 Token。悬停展开、离开收起，也可点击或拖动。
 
 点卡片顶栏的客户端名（如「Codex 用量 ▾」）可下拉切换要显示的 agent；点模式按钮下拉选择显示形态。两个下拉都可在 Windows 托盘图标的右键菜单中直接选择。偏好保存在 `%LOCALAPPDATA%\CodexUsageMonitor\settings.json`（只含界面偏好：显示模式、主题、当前客户端）。
 
-### 主题
-
-支持 **深色 / 浅色 / 自动** 三档主题；自动主题跟随 Windows 应用主题。状态同时使用颜色和「充足 / 偏低 / 紧张」文字，不只靠颜色表达。
-
 ### 安装与运行
 
-要求 Node.js 20+ 与可用的 `codex` 命令（Codex 配额读取需要；ZCode 监测不需要）。
-
 ```powershell
-# 在本仓库根目录执行（不要照抄路径，用你 clone 后的实际目录）
 npm install
 npm run build
 npm run install:companion   # 创建桌面快捷方式
 wscript.exe .\start-floating-window.vbs   # 无控制台窗口启动
 ```
 
-之后双击桌面的「Codex Usage Monitor」快捷方式即可。`start-floating-window.vbs` 通过 `wscript.exe` 静默启动，没有 cmd 黑框闪烁；旧的 `start-floating-window.cmd` 仍保留作后备。
+之后双击桌面的「Codex Usage Monitor」快捷方式即可。`start-floating-window.vbs` 通过 `wscript.exe` 静默启动，没有 cmd 黑框闪烁；`start-floating-window.cmd` 保留作后备。便携 exe 打包见 `portable.iss` + `scripts/build-portable.ps1`。
 
 开机自启：
 
@@ -91,23 +132,18 @@ npm run check
 - 默认不向第三方联网，不上传遥测，不记录完整协议消息。
 - 不提供购买 credits、消费 reset credit、修改账户或删除历史的写操作。
 
-## 展示边界
-
-官方插件扩展点只能提供会话内按需卡片，不能把永久组件插入 Codex 顶栏、状态栏或侧栏。这里的常驻卡片、指示条和悬浮球是独立 Windows 伴生窗，复用同一个只读数据核心，不修改 Codex / ZCode chrome。
-
-界面视觉参考了 [Quota Float](https://github.com/change-42-yhmm/quota-float) 的配额卡片与 [Codex Usage Overlay](https://github.com/ymy1990/codex-usage-overlay) 的紧凑指示条；实现、数据源和自动切换逻辑均属于本项目。
-
 ## 开发验证
 
 ```powershell
-npm run typecheck
-npm run lint
-npm test
-npm run build
+npm run typecheck     # server + desktop(electron/renderer) + tests 三套 tsconfig
+npm run lint          # scripts/lint.mjs + eslint
+npm run format:check  # prettier
+npm test              # server (*.js) + renderer domain (*.ts) + components (*.tsx)
+npm run build         # build:server (tsc) + build:desktop (electron-vite)
 npm run validate:plugin
 ```
 
-或一键全检：`npm run check`（= typecheck + lint + test + build + validate:plugin）。
+或一键全检：`npm run check`（= typecheck + lint + format:check + test + build + validate:plugin）。当前 385 个测试全绿。
 
 ## 许可
 
