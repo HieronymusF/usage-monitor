@@ -2,6 +2,7 @@ import { createReadStream, existsSync, promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
+import { dateKeyDaysAgo, toLocalDateKey, type LocalDateKeyOptions } from "./time.js";
 import type { LocalUsageResult, ModelUsage, TokenUsage, UsageWarning } from "./types.js";
 import { emptyLogCache, type LogCacheState, type TokenRecord } from "./sources/types.js";
 
@@ -41,11 +42,23 @@ export abstract class SessionLogReader {
 
   protected readonly now: () => Date;
   protected readonly retentionDays: number;
+  /**
+   * IANA 时区；undefined = 系统本地时区（生产跟随用户机器）。
+   * 测试通过显式注入（如 "Asia/Hong_Kong"）保证 bucket key 的确定性。
+   * 与 renderer 的 todayKey 共用同一契约（见 server/time.ts）。
+   */
+  protected readonly timeZone: string | undefined;
   private cache: LogCacheState | null = null;
 
-  constructor(options: { now?: () => Date; retentionDays?: number } = {}) {
+  constructor(options: { now?: () => Date; retentionDays?: number; timeZone?: string } = {}) {
     this.now = options.now ?? (() => new Date());
     this.retentionDays = options.retentionDays ?? 30;
+    this.timeZone = options.timeZone;
+  }
+
+  /** dateKey 选项，传给 shared time 工具。子类无需关心，仅供内部方法复用。 */
+  protected get dateKeyOptions(): LocalDateKeyOptions {
+    return { now: this.now, timeZone: this.timeZone };
   }
 
   /**
@@ -191,8 +204,13 @@ export abstract class SessionLogReader {
       cache.lifetimeOutput += record.output;
       cache.lifetimeCachedInput += record.cachedInput;
       cache.lifetimeTotal += record.total;
-      const date = record.timestamp.slice(0, 10) || this.now().toISOString().slice(0, 10);
-      const day = (cache.daily[date] ??= { input: 0, output: 0, cachedInput: 0, total: 0 });
+      // Bucket key 是该 record 时间戳在本地时区下的自然日。如果 record 没有
+      // 时间戳或时间戳非法，用"现在"的本地自然日兜底。与 renderer todayKey 用同一
+      // 实现（server/time.ts toLocalDateKey），保证两端"今日"语义一致。
+      const recordDate =
+        toLocalDateKey(new Date(record.timestamp), this.timeZone) ||
+        toLocalDateKey(this.now(), this.timeZone);
+      const day = (cache.daily[recordDate] ??= { input: 0, output: 0, cachedInput: 0, total: 0 });
       day.input += record.input;
       day.output += record.output;
       day.cachedInput += record.cachedInput;
@@ -218,12 +236,14 @@ export abstract class SessionLogReader {
   }
 
   private prune(cache: LogCacheState): void {
-    const cutoff = new Date(this.now().getTime() - this.retentionDays * 86_400_000).toISOString().slice(0, 10);
+    // 用本地自然日计算 cutoff（retentionDays 天前的日历日），与 bucket key 同契约。
+    const cutoff = dateKeyDaysAgo(this.retentionDays, this.dateKeyOptions);
     for (const date of Object.keys(cache.daily)) if (date < cutoff) delete cache.daily[date];
   }
 
   private toUsage(cache: LogCacheState, days: number): TokenUsage {
-    const cutoff = new Date(this.now().getTime() - (days - 1) * 86_400_000).toISOString().slice(0, 10);
+    // 用本地自然日计算 cutoff（days 天前的日历日，含今天共 days 天）。
+    const cutoff = dateKeyDaysAgo(days, this.dateKeyOptions);
     const daily = Object.entries(cache.daily)
       .filter(([date]) => date >= cutoff)
       .sort(([a], [b]) => a.localeCompare(b))

@@ -18,6 +18,8 @@ export interface LocalSessionReaderOptions {
   cachePath?: string;
   now?: () => Date;
   retentionDays?: number;
+  /** IANA 时区；省略 = 系统本地。透传给 CodexSessionLogReader。 */
+  timeZone?: string;
 }
 
 export class LocalSessionReader {
@@ -29,6 +31,7 @@ export class LocalSessionReader {
       ...(options.cachePath ? { cachePath: options.cachePath } : {}),
       ...(options.now ? { now: options.now } : {}),
       ...(options.retentionDays ? { retentionDays: options.retentionDays } : {}),
+      ...(options.timeZone !== undefined ? { timeZone: options.timeZone } : {}),
     });
   }
 

@@ -18,10 +18,11 @@ export class CodexSessionLogReader extends SessionLogReader {
   protected readonly logRoot: string;
   protected readonly cachePath: string;
 
-  constructor(options: { logRoot?: string; cachePath?: string; now?: () => Date; retentionDays?: number } = {}) {
+  constructor(options: { logRoot?: string; cachePath?: string; now?: () => Date; retentionDays?: number; timeZone?: string } = {}) {
     super({
       ...(options.now ? { now: options.now } : {}),
       ...(options.retentionDays ? { retentionDays: options.retentionDays } : {}),
+      ...(options.timeZone !== undefined ? { timeZone: options.timeZone } : {}),
     });
     this.logRoot = options.logRoot ?? homeJoin(".codex", "sessions");
     this.cachePath = options.cachePath ?? join(homedir(), ".codex-usage-monitor", "usage-cache.json");

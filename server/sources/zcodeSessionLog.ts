@@ -23,10 +23,11 @@ export class ZcodeSessionLogReader extends SessionLogReader {
     return process.env.ZCODE_LOG_ROOT ?? homeJoin(".zcode", "v2", "agent-config");
   }
 
-  constructor(options: { logRoot?: string; cachePath?: string; now?: () => Date; retentionDays?: number } = {}) {
+  constructor(options: { logRoot?: string; cachePath?: string; now?: () => Date; retentionDays?: number; timeZone?: string } = {}) {
     super({
       ...(options.now ? { now: options.now } : {}),
       ...(options.retentionDays ? { retentionDays: options.retentionDays } : {}),
+      ...(options.timeZone !== undefined ? { timeZone: options.timeZone } : {}),
     });
     this.logRoot = options.logRoot ?? ZcodeSessionLogReader.defaultRoot();
     this.cachePath = options.cachePath ?? join(homedir(), ".codex-usage-monitor", "zcode-usage-cache.json");
