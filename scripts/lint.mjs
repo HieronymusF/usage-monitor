@@ -7,10 +7,12 @@ async function walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) await walk(path);
-    else if (/\.(ts|js|mjs|json|md|ps1|cmd|vbs)$/.test(entry.name)) files.push(path);
+    else if (/\.(ts|tsx|js|mjs|json|md|css|html|ps1|cmd|vbs)$/.test(entry.name)) files.push(path);
   }
 }
-for (const folder of ["server", "scripts", "skills", "docs", "tests", "companion"]) await walk(join(root, folder));
+for (const folder of ["server", "scripts", "skills", "tests", "companion", "electron", "renderer", "shared"]) {
+  await walk(join(root, folder));
+}
 files.push(join(root, "start-floating-window.cmd"));
 files.push(join(root, "start-floating-window.vbs"));
 const errors = [];

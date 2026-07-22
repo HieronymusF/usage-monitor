@@ -3,6 +3,7 @@ node_modules/
 
 # Build output — regenerate with `npm run build`
 dist/
+out/
 
 # Logs
 *.log
@@ -26,3 +27,8 @@ Thumbs.db
 bundle/
 *.exe
 usage-monitor-build-cache/
+
+# Visual diff tool — actual/diff 是每次本地生成的截图产物，不入 git
+# _baseline 入 git（作为像素 diff 对比基准）
+docs/ui-designs/_actual/
+docs/ui-designs/_diff/
