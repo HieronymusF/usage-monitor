@@ -37,6 +37,7 @@ import type {
 } from "../../domain/types";
 import { formatToken } from "../../domain/format-token";
 import { GlassSurface } from "../foundations/GlassSurface";
+import { useOrbDrag } from "../../hooks/useOrbDrag";
 import { ProgressRing } from "../foundations/ProgressRing";
 import { useUsageViewModel } from "../../hooks/useUsageViewModel";
 import { typography } from "../../styles/tokens";
@@ -111,22 +112,34 @@ function OrbShell({
   statusHealth: Health;
 }): React.ReactElement {
   const g = SURFACE_GEOMETRY;
+  // D-3 切片 3：no-drag 覆盖 App.tsx 的 WebkitAppRegion:"drag"，由 useOrbDrag 接管拖动/click。
+  // OS drag 会抑制 renderer 指针事件，无法做 6 DIP 阈值或 click/drag 区分，故改 JS 驱动。
+  const drag = useOrbDrag();
   return (
     <GlassSurface
       surface="orb"
-      style={{
-        width: `${g.visible.width}px`,
-        height: `${g.visible.height}px`,
-        // v4：去共享层 border，用 box-shadow 做边缘
-        borderWidth: "0px",
-        borderStyle: "none",
-        boxShadow:
-          "inset 0 1px 0 color-mix(in srgb, white 50%, transparent), inset 0 0 0 1px color-mix(in srgb, white 18%, transparent)",
-        padding: 0,
-        position: "relative",
-        // v6：overflow hidden 保证内容不溢出胶囊轮廓（doc.md 第三条 CSS 参考）
-        overflow: "hidden",
-      }}
+      onPointerDown={drag.onPointerDown}
+      onPointerMove={drag.onPointerMove}
+      onPointerUp={drag.onPointerUp}
+      onPointerCancel={drag.onPointerCancel}
+      onLostPointerCapture={drag.onLostPointerCapture}
+      style={
+        {
+          width: `${g.visible.width}px`,
+          height: `${g.visible.height}px`,
+          // v4：去共享层 border，用 box-shadow 做边缘
+          borderWidth: "0px",
+          borderStyle: "none",
+          boxShadow:
+            "inset 0 1px 0 color-mix(in srgb, white 50%, transparent), inset 0 0 0 1px color-mix(in srgb, white 18%, transparent)",
+          padding: 0,
+          position: "relative",
+          // v6：overflow hidden 保证内容不溢出胶囊轮廓（doc.md 第三条 CSS 参考）
+          overflow: "hidden",
+          // D-3 切片 3：覆盖 App.tsx drag，接管为 click 展开 + JS 拖动
+          WebkitAppRegion: "no-drag",
+        } as React.CSSProperties
+      }
     >
       {children}
       <StatusDot health={statusHealth} />

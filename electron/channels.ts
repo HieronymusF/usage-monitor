@@ -5,4 +5,9 @@ export const desktopChannels = {
   refreshUsage: "usage:refresh",
   resizeCardWindow: "card:resize-window",
   showSurface: "surface:show",
+  moveOrb: "orb:move",
+  dragOrbEnd: "orb:drag-end",
+  getOrbBounds: "orb:get-bounds",
+  suspendHover: "hover:suspend",
+  resumeHover: "hover:resume",
 } as const;

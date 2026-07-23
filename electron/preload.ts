@@ -29,6 +29,22 @@ const monitorApi: MonitorDesktopApi = {
   showSurface: (kind: SurfaceKind) => {
     ipcRenderer.send(desktopChannels.showSurface, kind);
   },
+  moveOrb: (x: number, y: number) => {
+    ipcRenderer.send(desktopChannels.moveOrb, x, y);
+  },
+  dragOrbEnd: () => {
+    ipcRenderer.send(desktopChannels.dragOrbEnd);
+  },
+  getOrbBounds: () =>
+    ipcRenderer.invoke(desktopChannels.getOrbBounds) as ReturnType<
+      MonitorDesktopApi["getOrbBounds"]
+    >,
+  suspendHover: () => {
+    ipcRenderer.send(desktopChannels.suspendHover);
+  },
+  resumeHover: () => {
+    ipcRenderer.send(desktopChannels.resumeHover);
+  },
 };
 
 contextBridge.exposeInMainWorld("monitor", monitorApi);

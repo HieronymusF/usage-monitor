@@ -9,6 +9,10 @@
     "orb": "悬浮球",
     "edge-capsule": "边缘胶囊"
   },
+  "orb": {
+    "dragHandle": "拖动悬浮球",
+    "expand": "展开"
+  },
   "status": {
     "ready": "渲染进程已通过安全 IPC 连接",
     "loading": "正在初始化桌面上下文"

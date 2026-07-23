@@ -157,4 +157,10 @@ export interface UsageViewModel {
   fetchedAt: string;
   /** 全局 warnings（跨客户端）。 */
   warnings: { code: string; message: string }[];
+  /**
+   * 构造 vm 时使用的 now（生产=实时 Date，预览/测试=注入固定时钟）。
+   * 组件里所有时间派生（倒计时、更新时间相对）应优先用这个 now，而非 new Date()，
+   * 否则注入的 fixture 时钟失效（AGENT_LESSONS L9）。
+   */
+  now: () => Date;
 }

@@ -591,7 +591,7 @@ function CodexCapsuleBody({
 
   const resetQuota = weeklyQuota ?? fiveHourQuota;
   const resetParts = resetQuota?.resetsAt
-    ? computeCountdownParts({ resetsAt: resetQuota.resetsAt, now: () => new Date() })
+    ? computeCountdownParts({ resetsAt: resetQuota.resetsAt, now: vm.now })
     : null;
   const resetText = formatResetText(resetParts, i18n.language, t);
 

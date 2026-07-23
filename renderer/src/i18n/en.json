@@ -9,6 +9,10 @@
     "orb": "Orb",
     "edge-capsule": "Edge capsule"
   },
+  "orb": {
+    "dragHandle": "Drag orb",
+    "expand": "Expand"
+  },
   "status": {
     "ready": "Renderer connected through the secure IPC bridge",
     "loading": "Initializing desktop context"

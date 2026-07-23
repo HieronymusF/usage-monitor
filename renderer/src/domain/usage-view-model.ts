@@ -186,6 +186,7 @@ export function toUsageViewModel(input: {
       client: null,
       fetchedAt: "",
       warnings: [],
+      now,
     };
   }
 
@@ -202,5 +203,6 @@ export function toUsageViewModel(input: {
     client,
     fetchedAt: snapshot.fetchedAt,
     warnings: snapshot.warnings,
+    now,
   };
 }
