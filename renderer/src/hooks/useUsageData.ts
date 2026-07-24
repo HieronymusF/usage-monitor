@@ -21,6 +21,18 @@ export function useUsageData() {
     keepPreviousData: true,
   });
 
+  // Milestone E-F 验收修复（问题 3）：监听主进程推送的新快照（托盘刷新等触发），
+  // 收到后立即 mutate 本地 SWR，不等下一轮轮询。
+  // 依赖只取 result.mutate（SWR 保证稳定引用），不依赖整个 result 对象，
+  // 避免每次 render 都重新订阅/取消订阅。
+  const mutate = result.mutate;
+  useEffect(() => {
+    const unsubscribe = window.monitor.onUsageChanged((snapshot) => {
+      void mutate(snapshot, { revalidate: false });
+    });
+    return unsubscribe;
+  }, [mutate]);
+
   useEffect(() => {
     if (result.data) setSnapshot(result.data);
   }, [result.data, setSnapshot]);

@@ -113,3 +113,64 @@ test("store: dark 强制模式下切回 auto + 系统为 light → resolved 变 
 
   assert.equal(useThemeStore.getState().resolved, "light");
 });
+
+// ---------- hydrateFromPreferences（Milestone E-F/G：主进程真相源）----------
+
+test("store: hydrateFromPreferences 应用主进程推送的 themePreference", async () => {
+  const { useThemeStore } = await import("../../renderer/src/stores/themeStore.ts");
+  useThemeStore.setState({ preference: "auto", resolved: "light", systemTheme: "dark" });
+  const appliedClasses: string[] = [];
+  const sink = { setClass: (cls: string) => appliedClasses.push(cls) };
+
+  // 主进程推送 dark
+  useThemeStore.getState().hydrateFromPreferences({
+    version: 1,
+    themePreference: "dark",
+    displayPreference: "auto",
+    activeClient: "codex",
+    language: "zh-CN",
+  });
+  useThemeStore.getState().applyTheme(sink);
+
+  assert.equal(useThemeStore.getState().preference, "dark");
+  assert.equal(useThemeStore.getState().resolved, "dark");
+  assert.deepEqual(appliedClasses, ["dark"]);
+});
+
+test("store: hydrateFromPreferences 幂等（值一致无副作用）", async () => {
+  const { useThemeStore } = await import("../../renderer/src/stores/themeStore.ts");
+  useThemeStore.setState({ preference: "dark", resolved: "dark", systemTheme: "light" });
+  let applyCount = 0;
+  const origApply = useThemeStore.getState().applyTheme;
+  // 监控 applyTheme 是否被调（hydrate 一致时应早 return，不调 applyTheme）
+  useThemeStore.getState().applyTheme = () => {
+    applyCount++;
+  };
+
+  useThemeStore.getState().hydrateFromPreferences({
+    version: 1,
+    themePreference: "dark", // 与当前一致
+    displayPreference: "auto",
+    activeClient: "codex",
+    language: "zh-CN",
+  });
+
+  assert.equal(applyCount, 0, "值一致时 hydrate 不触发 applyTheme");
+  // 还原
+  useThemeStore.getState().applyTheme = origApply;
+});
+
+test("store: hydrateFromPreferences auto 模式跟随 systemTheme", async () => {
+  const { useThemeStore } = await import("../../renderer/src/stores/themeStore.ts");
+  useThemeStore.setState({ preference: "light", resolved: "light", systemTheme: "dark" });
+
+  useThemeStore.getState().hydrateFromPreferences({
+    version: 1,
+    themePreference: "auto",
+    displayPreference: "auto",
+    activeClient: "codex",
+    language: "zh-CN",
+  });
+
+  assert.equal(useThemeStore.getState().resolved, "dark", "auto + systemDark → dark");
+});

@@ -62,6 +62,11 @@ export type DesktopPlatform =
   | "cygwin"
   | "netbsd";
 
+// Milestone E-F/G：偏好类型供 MonitorDesktopApi 使用；re-export 让 renderer/preload 一处 import。
+import type { PreferenceKey, Settings } from "./settings.js";
+export type { PreferenceKey, Settings };
+export type { DisplayPreference, ThemePreference, ClientKind, Language } from "./settings.js";
+
 export interface DesktopContext {
   platform: DesktopPlatform;
   surface: SurfaceKind;
@@ -78,6 +83,11 @@ export interface MonitorDesktopApi {
   getContext(): Promise<DesktopContext>;
   getUsage(): Promise<MultiClientSnapshot>;
   refreshUsage(): Promise<MultiClientSnapshot>;
+  /**
+   * Milestone E-F 验收修复（问题 3）：监听主进程推送的新快照（托盘刷新等触发）。
+   * 收到后立即更新本地 SWR/store，不等下一轮轮询。
+   */
+  onUsageChanged(listener: (snapshot: MultiClientSnapshot) => void): () => void;
   onSystemThemeChange(listener: (theme: SystemTheme) => void): () => void;
   /**
    * 通知主进程 Card 窗口切换尺寸（codex → 576×404，zcode → 576×333）。
@@ -114,6 +124,19 @@ export interface MonitorDesktopApi {
    * P1-1：恢复 hover（拖动 pointerup 时调）。单向命令。不立即展开——等首次 not-over。
    */
   resumeHover(): void;
+  /**
+   * Milestone E-F/G：取全部用户偏好（主进程为单一真相源）。启动时 hydrate 用。
+   */
+  getPreferences(): Promise<Settings>;
+  /**
+   * Milestone E-F/G：写单个偏好字段。单向命令——主进程更新后会广播 preferenceChanged，
+   * renderer 监听到再应用（不在此同步返回，避免 renderer 自行维护真相源）。
+   */
+  setPreference(key: PreferenceKey, value: string): void;
+  /**
+   * Milestone E-F/G：监听偏好变化（主进程推送）。任意偏好字段变更都触发，listener 收到完整 Settings。
+   */
+  onPreferenceChanged(listener: (settings: Settings) => void): () => void;
 }
 import type { MultiClientSnapshot } from "../server/types.js";
 

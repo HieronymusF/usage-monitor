@@ -63,7 +63,25 @@
     "today": "Today",
     "todayToken": "Today tokens",
     "lifetime": "Lifetime",
-    "models": "Models"
+    "models": "Models",
+    "menu": {
+      "openCard": "Open Card",
+      "displayMode": "Display mode",
+      "client": "Client",
+      "theme": "Theme",
+      "language": "Language",
+      "refresh": "Refresh",
+      "quit": "Quit",
+      "displayAuto": "Auto",
+      "displayCard": "Card",
+      "displayBar": "Bar",
+      "displayOrb": "Orb",
+      "themeAuto": "Auto",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "langZhCN": "简体中文",
+      "langEn": "English"
+    }
   },
   "bar": {
     "localEstimate": "Local estimate",

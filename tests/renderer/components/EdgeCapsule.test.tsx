@@ -435,6 +435,7 @@ function installMockMonitor(): {
       showSurfaceCalls.push(kind);
     },
     onSystemThemeChange: () => () => {},
+    onUsageChanged: () => () => {},
     resizeCardWindow: () => {},
   };
   return {

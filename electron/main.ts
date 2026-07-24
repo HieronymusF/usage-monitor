@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { existsSync } from "node:fs";
 import { CompanionBridgeClient } from "./bridge.js";
-import { registerDesktopIpc } from "./ipc.js";
+import { registerDesktopIpc, broadcastPreferences, broadcastUsage } from "./ipc.js";
 import { desktopChannels } from "./channels.js";
 import { SurfaceWindowManager } from "./windows/manager.js";
 import { AutoSurfaceWatcher } from "./windows/auto-surface-watcher.js";
@@ -13,13 +13,30 @@ import { PowerShellForegroundWindowAdapter } from "./windows/foreground-powershe
 import { HoverProbe } from "./windows/hover-probe.js";
 import { OrbHoverController } from "./windows/orb-hover-controller.js";
 import { ProbeDaemon } from "./windows/probe-daemon.js";
+import { SettingsRepository } from "./settings/repository.js";
+import { createPreferenceCommitter, performTrayRefresh } from "./preferences.js";
+import { createTray } from "./tray/index.js";
+import type { TrayMenuCallbacks } from "./tray/menu-builder.js";
 import type { SurfaceKind } from "../shared/desktop.js";
+import type {
+  ClientKind,
+  DisplayPreference,
+  Language,
+  PreferenceKey,
+  Settings,
+  ThemePreference,
+} from "../shared/settings.js";
+import { DEFAULT_SETTINGS, resolveLanguageFromLocale } from "../shared/settings.js";
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 const windowManager = new SurfaceWindowManager();
 const bridgeClient = new CompanionBridgeClient({
   bridgeScript: join(app.getAppPath(), "dist", "companionBridge.js"),
 });
+// Milestone E-F/G：用户偏好仓库（主进程单一真相源）。
+// 注意：不在模块初始化阶段创建（也不调 app.getLocale/getPreferredSystemLanguages）——
+// Electron 这些 API 在 app.whenReady() 前不可靠。settingsRepo 在 whenReady 内创建并 load。
+let settingsRepo: SettingsRepository | undefined;
 let unregisterIpc: (() => void) | undefined;
 let autoSurfaceWatcher: AutoSurfaceWatcher | undefined;
 let orbHoverController: OrbHoverController | undefined;
@@ -27,6 +44,8 @@ let orbHoverController: OrbHoverController | undefined;
 let offSurfaceChange: (() => void) | undefined;
 /** D-3 性能修复：共享长驻 PS 守护进程，foreground + hover 复用，避免每探针 spawn。 */
 let probeDaemon: ProbeDaemon | undefined;
+/** Milestone E-F：托盘实例（destroy 用）。 */
+let trayHandle: { destroy(): void; rebuild(): void } | undefined;
 let shuttingDown = false;
 
 /**
@@ -78,6 +97,123 @@ function shouldRunAutoSurface(): boolean {
   if (process.env.SURFACE) return false;
   if (process.env.CAPTURE_PREVIEW === "1") return false;
   return true;
+}
+
+/**
+ * Milestone E-F 验收修复（问题 1）：在 app.whenReady() 后取系统首选语言。
+ * 优先 app.getPreferredSystemLanguages()[0]（BCP-47），回退 app.getLocale()，再回退 ""。
+ * 纯读，不依赖 whenReady 外的状态。
+ */
+function readSystemLanguage(): string {
+  const preferred = app.getPreferredSystemLanguages();
+  if (Array.isArray(preferred) && preferred.length > 0 && typeof preferred[0] === "string") {
+    return preferred[0]!;
+  }
+  return app.getLocale();
+}
+
+/**
+ * Milestone E-F/G：应用主题偏好的副作用。
+ * auto → nativeTheme.themeSource="system"（跟随系统）；light/dark → 强制。
+ * Electron nativeTheme 是系统级主题源，renderer 通过 onSystemThemeChange 收到解析后的主题。
+ */
+function applyThemePreference(pref: ThemePreference): void {
+  nativeTheme.themeSource = pref === "auto" ? "system" : pref;
+}
+
+/**
+ * Milestone E-F：应用展示模式偏好的副作用。
+ * auto → 启动前台检测 watcher（仅生产路径）；非 auto → 停 watcher + 固定显示该 surface。
+ * 返回当前应显示的初始 surface（auto 时由 watcher 决定，此处返当前可见 surface）。
+ */
+async function applyDisplayPreference(
+  pref: DisplayPreference,
+  initialSurface: SurfaceKind,
+): Promise<SurfaceKind> {
+  if (!shouldRunAutoSurface()) return initialSurface;
+  if (pref === "auto") {
+    // 启动 watcher（若未运行）。watcher 接管 surface 切换。
+    startAutoSurface(initialSurface);
+    return initialSurface;
+  }
+  // 非 auto：停 watcher，固定显示偏好指定的 surface。
+  stopAutoSurface();
+  const target = pref; // displayPreference 的非 auto 值就是 SurfaceKind（card/indicator-bar/orb）
+  await windowManager.showOnly(target).catch((err: unknown) => {
+    console.error("[main] showOnly for displayPreference failed:", err);
+  });
+  return target;
+}
+
+/** 启动前台检测 watcher + hover controller（幂等：已运行则跳过）。 */
+function startAutoSurface(initialSurface: SurfaceKind): void {
+  if (autoSurfaceWatcher) return;
+  autoSurfaceWatcher = new AutoSurfaceWatcher(createForegroundAdapter(), windowManager, {
+    initialSurface,
+  });
+  autoSurfaceWatcher.start();
+  orbHoverController = createOrbHoverController();
+  orbHoverController?.start();
+}
+
+/** 停止前台检测 watcher + hover controller（幂等）。 */
+function stopAutoSurface(): void {
+  orbHoverController?.stop();
+  orbHoverController = undefined;
+  offSurfaceChange?.();
+  offSurfaceChange = undefined;
+  autoSurfaceWatcher?.stop();
+  autoSurfaceWatcher = undefined;
+}
+
+/**
+ * Milestone E-F/G：偏好提交协调器（生产实例）。
+ * 副作用经 PreferenceSideEffects 接口注入——协调逻辑在 electron/preferences.ts 可测模块里，
+ * 测试调真实 createPreferenceCommitter，不再复制逻辑（验收 P2 修复）。
+ * 在 whenReady 后（repo/tray/windowManager 就绪）创建。
+ */
+let commitPreference: (<K extends PreferenceKey>(key: K, value: string) => Settings) | undefined;
+
+/** 取当前可见 surface（无则 card），用于 displayPreference 切到 auto 时的 watcher 初值。 */
+function getVisibleSurfaceSafe(): SurfaceKind {
+  return windowManager.getVisibleSurface() ?? "card";
+}
+
+/**
+ * Milestone E-F：托盘菜单回调。每个回调经 commitPreference 写偏好 + 应用副作用。
+ * openCard / refresh / quit 不改偏好，直接调对应能力。
+ */
+function makeTrayCallbacks(): TrayMenuCallbacks {
+  return {
+    openCard: () => {
+      void windowManager.showOnly("card").catch((err: unknown) => {
+        console.error("[tray] openCard failed:", err);
+      });
+    },
+    setDisplayPreference: (pref) => {
+      commitPreference?.("displayPreference", pref);
+    },
+    setActiveClient: (client: ClientKind) => {
+      commitPreference?.("activeClient", client);
+    },
+    setThemePreference: (pref: ThemePreference) => {
+      commitPreference?.("themePreference", pref);
+    },
+    setLanguage: (lang: Language) => {
+      commitPreference?.("language", lang);
+    },
+    refresh: () => {
+      // 验收轮 4 P2：调真实 performTrayRefresh 协调函数（refresh→broadcast+错误处理），
+      // 不在回调里手写串联——测试和 main.ts 调同一份逻辑，漏广播会被测出。
+      void performTrayRefresh(
+        () => bridgeClient.refreshUsage(),
+        (snapshot) => broadcastUsage(snapshot),
+      );
+    },
+    quit: () => {
+      app.quit();
+    },
+  };
 }
 
 /**
@@ -158,6 +294,9 @@ async function captureAndQuit(): Promise<void> {
 async function shutdown(): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
+  // Milestone E-F：销毁托盘。
+  trayHandle?.destroy();
+  trayHandle = undefined;
   orbHoverController?.stop();
   orbHoverController = undefined;
   offSurfaceChange?.();
@@ -177,6 +316,16 @@ async function shutdown(): Promise<void> {
       // dispose 内部已兜底，忽略。
     }
   }
+  // Milestone E-F/G：确保偏好写盘完成后再退出。
+  const repo = settingsRepo;
+  settingsRepo = undefined;
+  if (repo) {
+    try {
+      await repo.flush();
+    } catch {
+      // flush 内部已兜底。
+    }
+  }
   await bridgeClient.close();
   app.quit();
 }
@@ -191,29 +340,58 @@ if (!hasSingleInstanceLock) {
   app
     .whenReady()
     .then(async () => {
+      // 问题 1：settingsRepo 在 whenReady 后创建（不在模块初始化阶段调 app.getLocale 等）。
+      // 首次文件缺失时 language 按系统首选语言解析；用户已保存走文件读取分支，不受影响。
+      settingsRepo = new SettingsRepository({
+        dir: app.getPath("userData"),
+        initialDefaults: {
+          ...DEFAULT_SETTINGS,
+          language: resolveLanguageFromLocale(readSystemLanguage()),
+        },
+      });
+      const repo = settingsRepo;
+      // Milestone E-F/G：加载用户偏好（主进程单一真相源）。文件缺失/损坏回退默认。
+      const settings = repo.load();
+      // 应用初始主题偏好（让 nativeTheme 在首个窗口创建前就位）。
+      if (process.env.CAPTURE_PREVIEW !== "1") {
+        applyThemePreference(settings.themePreference);
+      }
       try {
         await bridgeClient.start();
       } catch (error) {
         console.error(error instanceof Error ? error.message : "Companion bridge startup failed");
       }
-      unregisterIpc = registerDesktopIpc(windowManager, bridgeClient);
+      // 创建偏好提交协调器（electron/preferences.ts 可测模块），注入真实副作用。
+      // IPC 和托盘回调都经此单一入口（broadcast + tray.rebuild + theme/display/client 副作用全执行）。
+      commitPreference = createPreferenceCommitter(repo, {
+        broadcast: broadcastPreferences,
+        rebuildTray: () => trayHandle?.rebuild(),
+        applyTheme: applyThemePreference,
+        applyDisplay: (pref) => {
+          void applyDisplayPreference(pref, getVisibleSurfaceSafe());
+        },
+        resizeClient: (client) => windowManager.resizeCardWindow(client),
+      });
+      // registerDesktopIpc 经 callbacks 走 commitPreference/getPreferences 统一入口（问题 2）。
+      unregisterIpc = registerDesktopIpc(windowManager, bridgeClient, {
+        getPreferences: () => repo.get(),
+        onSetPreference: (key, value) => commitPreference?.(key, value),
+      });
       // P1-1：hover suspend/resume IPC（拖动期间暂停 hover）。sender 必须是 orb。
       registerHoverSuspendIpc();
-      // SURFACE env：dev/capture 用，默认 card。生产由自动模式 + 托盘菜单驱动（后续 milestone）。
+      // Milestone E-F：创建托盘（生产路径，dev/capture 也建便于调试）。
+      if (process.env.CAPTURE_PREVIEW !== "1") {
+        trayHandle = createTray({ repo, callbacks: makeTrayCallbacks() });
+      }
+      // SURFACE env：dev/capture 用，默认 card。生产由 displayPreference 决定。
       const initialSurface = (process.env.SURFACE ?? "card") as SurfaceKind;
       await windowManager.showOnly(initialSurface);
 
-      // D-3 切片 1：生产路径启动前台检测 → 自动 surface 切换。dev/capture 跳过。
+      // D-3 切片 1 + Milestone E-F：前台检测/自动模式。
+      // 生产路径：displayPreference==="auto" 启动 watcher；非 auto 固定显示该 surface。
+      // dev/capture（SURFACE/CAPTURE env）固定 initialSurface，watcher 不启动。
       if (shouldRunAutoSurface()) {
-        autoSurfaceWatcher = new AutoSurfaceWatcher(createForegroundAdapter(), windowManager, {
-          initialSurface,
-        });
-        autoSurfaceWatcher.start();
-
-        // D-3 切片 2：hover 展开 Orb → EdgeCapsule。与 watcher 同条件（生产路径），
-        // 且仅 win32 + probe 脚本存在时启动。controller 自判可见 surface，card/bar 时静默。
-        orbHoverController = createOrbHoverController();
-        orbHoverController?.start();
+        await applyDisplayPreference(settings.displayPreference, initialSurface);
       }
 
       // 截图模式：渲染稳定后截 Card，写文件后退出。生产路径（无 CAPTURE_PREVIEW）跳过。

@@ -66,6 +66,14 @@ const HEALTH_COLOR: Record<Health, string> = {
   unavailable: "var(--c-tertiary)",
 };
 
+/** 健康度 → i18n key（状态点 aria-label，不只靠颜色表达）。 */
+const HEALTH_I18N_KEY: Record<Health, string> = {
+  sufficient: "health.sufficient",
+  low: "health.low",
+  critical: "health.critical",
+  unavailable: "health.unavailable",
+};
+
 export function Orb(): React.ReactElement {
   const vm = useUsageViewModel();
   return <OrbInner vm={vm} />;
@@ -267,11 +275,14 @@ function GripDots(): React.ReactElement {
 /** 底部状态点（绝对定位，v6: 7px，距 ring 底 16px）。 */
 function StatusDot({ health }: { health: Health }): React.ReactElement {
   const g = SURFACE_GEOMETRY;
+  const { t } = useTranslation();
   // top = ringTop + ringFrame + statusTopFromRingBottom
   const top = g.ringTop + g.ringFrame + g.statusTopFromRingBottom;
+  // a11y：状态点不只靠颜色（DEVELOPMENT-PLAN §12），role=img + aria-label 让屏幕阅读器读出健康度。
   return (
     <span
-      aria-hidden="true"
+      role="img"
+      aria-label={t(HEALTH_I18N_KEY[health])}
       style={{
         position: "absolute",
         top: `${top}px`,

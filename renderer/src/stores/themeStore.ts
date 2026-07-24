@@ -3,11 +3,12 @@
  *
  * 设计依据：visual-spec §4 "Auto 不是第三套颜色，它解析为 Light 或 Dark"。
  *
- * preference: 用户偏好（auto / light / dark），未来持久化到 settings.json。
- * resolved: 实际生效的主题（light / dark），由 preference 解析得出：
- *   - preference=light → resolved=light
- *   - preference=dark  → resolved=dark
- *   - preference=auto  → resolved=systemTheme（由 ThemeProvider 注入）
+ * Milestone E-F/G：主进程为偏好单一真相源。
+ *   - preference 由 ThemeProvider 从主进程 preferences hydrate（启动 + onPreferenceChanged）。
+ *   - setPreference（用户 UI 操作）：乐观更新本地 + 写主进程 IPC 持久化；
+ *     主进程广播回来时由 hydrateFromPreferences 应用（幂等，与乐观值一致则无操作）。
+ *   - resolved: 实际生效主题（light / dark），由 preference 解析：
+ *     preference=light/dark → 该值；preference=auto → systemTheme。
  *
  * applyTheme 把 resolved 写到 <html> 的 class 上（.light 或 .dark），
  * globals.css 据此切换 CSS variables。
@@ -16,6 +17,7 @@
  */
 
 import { create } from "zustand";
+import type { Settings } from "../../../shared/desktop";
 
 export type ThemePreference = "auto" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
@@ -25,10 +27,19 @@ export interface ThemeState {
   resolved: ResolvedTheme;
   /** 注入：系统主题（auto 模式下用它）。ThemeProvider 从 nativeTheme 推送。 */
   systemTheme: ResolvedTheme;
-  /** 设置用户偏好，自动重算 resolved 并应用到 DOM。 */
+  /**
+   * 用户 UI 操作入口（乐观更新 + 写主进程 IPC）。
+   * 立即本地应用 preference（UI 即时响应），同时发 IPC 持久化；
+   * 主进程广播回来时 hydrateFromPreferences 幂等覆盖。
+   */
   setPreference(preference: ThemePreference): void;
-  /** 更新系统主题（auto 模式下触发重算）。 */
+  /** 更新系统主题（auto 模式下触发重算）。ThemeProvider 从 onSystemThemeChange 推送。 */
   setSystemTheme(systemTheme: ResolvedTheme): void;
+  /**
+   * Milestone E-F/G：从主进程 Settings 应用偏好（启动 + 广播）。
+   * 纯同步应用（不调 IPC），幂等（值一致则无副作用）。
+   */
+  hydrateFromPreferences(settings: Settings): void;
   /**
    * 把 resolved 写到 <html> class 上。
    * 默认操作 document.documentElement；测试可注入 domSink 避免污染全局。
@@ -69,15 +80,30 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   systemTheme: "light",
 
   setPreference(preference) {
+    // 乐观更新：立即本地应用（UI 即时响应）。
     const resolved = resolveTheme(preference, get().systemTheme);
     set({ preference, resolved });
     get().applyTheme();
+    // Milestone E-F/G：写主进程持久化（主进程广播回来时 hydrate 幂等覆盖）。
+    // window.monitor 在 preload 注入；node:test 下不存在则跳过（纯状态测试不依赖 IPC）。
+    if (typeof window !== "undefined" && window.monitor?.setPreference) {
+      window.monitor.setPreference("themePreference", preference);
+    }
   },
 
   setSystemTheme(systemTheme) {
     const { preference } = get();
     const resolved = resolveTheme(preference, systemTheme);
     set({ systemTheme, resolved });
+    get().applyTheme();
+  },
+
+  hydrateFromPreferences(settings) {
+    // 主进程推送的偏好应用（启动 + onPreferenceChanged）。幂等：值一致则无操作。
+    const prev = get();
+    if (prev.preference === settings.themePreference) return;
+    const resolved = resolveTheme(settings.themePreference, prev.systemTheme);
+    set({ preference: settings.themePreference, resolved });
     get().applyTheme();
   },
 

@@ -49,6 +49,8 @@ test("useUsageData: refreshUsage reject 时返回 null 且保留旧快照 + stor
     refreshUsage: async () => {
       throw new Error("bridge unreachable (test)");
     },
+    // 问题 3：useUsageData 现在订阅 onUsageChanged；mock 返回 noop unsubscribe。
+    onUsageChanged: () => () => {},
   };
   useUsageStore.setState({ snapshot: null, error: null, activeClient: "codex" });
 
@@ -92,6 +94,7 @@ test("useUsageData: refreshUsage 成功时更新快照且无错误", async () =>
   (globalThis as { window: typeof globalThis & { monitor?: unknown } }).window.monitor = {
     getUsage: async () => codexDual,
     refreshUsage: async () => codexDual,
+    onUsageChanged: () => () => {},
   };
   useUsageStore.setState({ snapshot: null, error: null, activeClient: "codex" });
 
@@ -117,4 +120,86 @@ test("useUsageData: refreshUsage 成功时更新快照且无错误", async () =>
   // 成功路径：无错误（SWR error 为 undefined 或 null），快照存在
   assert.ok(!latest!.error, "refresh 成功后无错误");
   assert.ok(latest!.snapshot, "快照存在");
+});
+
+test("useUsageData: 主进程推送新快照（onUsageChanged）→ SWR 立即更新，不等轮询（问题 3）", async () => {
+  // 用可捕获的 listener：renderer 订阅 onUsageChanged 时我们拿到引用，主动推送新快照。
+  let usageListener: ((snapshot: MultiClientSnapshot) => void) | null = null;
+  (globalThis as { window: typeof globalThis & { monitor?: unknown } }).window.monitor = {
+    getUsage: async () => codexDual,
+    refreshUsage: async () => codexDual,
+    onUsageChanged: (listener: (snapshot: MultiClientSnapshot) => void) => {
+      usageListener = listener;
+      return () => {
+        usageListener = null;
+      };
+    },
+  };
+  useUsageStore.setState({ snapshot: null, error: null, activeClient: "codex" });
+
+  let latest: {
+    snapshot: MultiClientSnapshot | undefined;
+  } | null = null;
+  render(
+    React.createElement(UsageDataHost, {
+      onState: (s) => {
+        latest = s;
+      },
+    }),
+  );
+
+  await waitFor(() => {
+    assert.ok(latest?.snapshot, "初始应有快照");
+  });
+
+  // 初始快照是 codexDual。构造一个不同的新快照，模拟主进程广播。
+  const freshSnapshot: MultiClientSnapshot = {
+    ...codexDual,
+    __testFresh: true,
+  } as unknown as MultiClientSnapshot;
+
+  // 模拟主进程 broadcastUsage → renderer 收到。
+  assert.ok(usageListener, "useUsageData 应订阅 onUsageChanged");
+  (usageListener as (snapshot: MultiClientSnapshot) => void)(freshSnapshot);
+
+  // SWR 应立即 mutate 到新快照。
+  await waitFor(() => {
+    assert.equal(latest?.snapshot, freshSnapshot, "onUsageChanged 推送后 SWR 立即更新为新快照");
+  });
+});
+
+test("useUsageData: 重复 render 不重复订阅 onUsageChanged（effect 依赖稳定 mutate，问题 2）", async () => {
+  // 统计 onUsageChanged 订阅次数。effect 依赖只取 result.mutate（SWR 稳定引用），
+  // 所以多次 render 应只订阅一次；若误依赖整个 result 对象会每次 render 重新订阅。
+  let subscribeCount = 0;
+  (globalThis as { window: typeof globalThis & { monitor?: unknown } }).window.monitor = {
+    getUsage: async () => codexDual,
+    refreshUsage: async () => codexDual,
+    onUsageChanged: () => {
+      subscribeCount++;
+      return () => {};
+    },
+  };
+  useUsageStore.setState({ snapshot: null, error: null, activeClient: "codex" });
+
+  const { rerender } = render(React.createElement(UsageDataHost, { onState: () => {} }));
+
+  // 等 SWR 首次 resolve，effect 初次订阅。
+  await waitFor(() => assert.ok(subscribeCount >= 1, "初次 render 应订阅一次"));
+
+  const afterFirst = subscribeCount;
+
+  // 触发多次重复 render（不同 props 触发 re-render，但 mutate 引用不变）。
+  rerender(React.createElement(UsageDataHost, { onState: () => {} }));
+  rerender(React.createElement(UsageDataHost, { onState: () => {} }));
+  rerender(React.createElement(UsageDataHost, { onState: () => {} }));
+
+  // 等一拍让任何潜在的 effect 重跑完成。
+  await new Promise((resolve) => setTimeout(resolve, 50));
+
+  assert.equal(
+    subscribeCount,
+    afterFirst,
+    `重复 render 不应重新订阅（effect 依赖稳定 mutate），实际订阅 ${subscribeCount} 次（首次后 ${afterFirst}）`,
+  );
 });

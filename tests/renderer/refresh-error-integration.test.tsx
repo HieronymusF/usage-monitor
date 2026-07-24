@@ -40,6 +40,7 @@ test("refresh-error 集成: refreshUsage reject → 旧快照保留 + dataState 
     },
     getContext: async () => ({ platform: "win32", surface: "edge-capsule", systemTheme: "light" }),
     onSystemThemeChange: () => () => {},
+    onUsageChanged: () => () => {},
     resizeCardWindow: () => {},
     showSurface: () => {},
   };
@@ -81,6 +82,7 @@ test("refresh-error 集成: refreshUsage 成功 → dataState 不进 refresh-err
     refreshUsage: async () => codexDual,
     getContext: async () => ({ platform: "win32", surface: "edge-capsule", systemTheme: "light" }),
     onSystemThemeChange: () => () => {},
+    onUsageChanged: () => () => {},
     resizeCardWindow: () => {},
     showSurface: () => {},
   };

@@ -90,3 +90,30 @@ test("usageStore: subscribe 在 activeClient 变化时通知（验证 CardHeader
   assert.ok(observed.length >= 2, "subscribe 应被通知");
   assert.equal(observed[observed.length - 1], "codex", "最后一次应是 codex");
 });
+
+// ---------- hydrateFromPreferences（Milestone E-F/G：主进程真相源）----------
+
+test("usageStore: hydrateFromPreferences 应用主进程推送的 activeClient", () => {
+  resetStore();
+  useUsageStore.getState().hydrateFromPreferences({
+    version: 1,
+    themePreference: "auto",
+    displayPreference: "auto",
+    activeClient: "zcode",
+    language: "zh-CN",
+  });
+  assert.equal(useUsageStore.getState().activeClient, "zcode");
+});
+
+test("usageStore: hydrateFromPreferences 幂等（值一致不变）", () => {
+  resetStore();
+  useUsageStore.getState().setActiveClient("zcode");
+  useUsageStore.getState().hydrateFromPreferences({
+    version: 1,
+    themePreference: "auto",
+    displayPreference: "auto",
+    activeClient: "zcode", // 一致
+    language: "zh-CN",
+  });
+  assert.equal(useUsageStore.getState().activeClient, "zcode");
+});
