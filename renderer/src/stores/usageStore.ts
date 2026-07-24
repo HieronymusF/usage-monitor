@@ -1,15 +1,15 @@
 import { create } from "zustand";
-import type { MultiClientSnapshot, Settings } from "../../../shared/desktop";
+import type { ClientKind, MultiClientSnapshot, Settings } from "../../../shared/desktop";
 
 interface UsageState {
-  activeClient: string;
+  activeClient: ClientKind;
   snapshot: MultiClientSnapshot | null;
   error: string | null;
   /**
    * 用户 UI 切换客户端（乐观更新 + 写主进程 IPC）。
    * 主进程广播回来时由 hydrateFromPreferences 幂等覆盖。
    */
-  setActiveClient(clientId: string): void;
+  setActiveClient(clientId: ClientKind): void;
   /** Milestone E-F/G：从主进程 Settings 应用 activeClient（启动 + 广播）。幂等。 */
   hydrateFromPreferences(settings: Settings): void;
   setSnapshot(snapshot: MultiClientSnapshot): void;

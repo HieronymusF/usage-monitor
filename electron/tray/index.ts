@@ -3,12 +3,12 @@
  *
  * 依赖 electron 运行时（Tray / Menu / nativeImage），核心菜单模板构造已抽成纯函数
  *（menu-builder.ts，被 tests/electron/tray-menu.test.ts 覆盖）；本模块只做：
- * - 创建 Tray + 占位图标 + tooltip。
+ * - 创建 Tray + 正式多分辨率图标 + tooltip。
  * - 根据 settings 构造菜单并 setContextMenu。
  * - 偏好变化时重建菜单（语言切换/任何 radio 选中变化都要刷新 ✓）。
  * - destroy() 优雅销毁。
  *
- * 占位图标：nativeImage 内嵌最小 PNG（16x16），避免卡在美术资源上（视觉留 Milestone H）。
+ * 正式图标由 main.ts 解析 resources/usage-monitor.ico（开发态源码、打包态 extraResources）。
  */
 import { Tray, Menu, nativeImage } from "electron";
 import { buildTrayMenuTemplate, TRAY_STRINGS, type TrayMenuCallbacks } from "./menu-builder.js";
@@ -19,6 +19,8 @@ export interface CreateTrayOptions {
   callbacks: TrayMenuCallbacks;
   /** 应用显示名（tooltip 用）。 */
   appName?: string;
+  /** 多分辨率 .ico 绝对路径。 */
+  iconPath: string;
 }
 
 /**
@@ -31,7 +33,7 @@ export function createTray(opts: CreateTrayOptions): {
 } {
   const { repo, callbacks } = opts;
   const appName = opts.appName ?? "Codex Usage Monitor";
-  const icon = createPlaceholderIcon();
+  const icon = loadTrayIcon(opts.iconPath);
   const tray = new Tray(icon);
   tray.setToolTip(appName);
 
@@ -53,11 +55,13 @@ export function createTray(opts: CreateTrayOptions): {
 }
 
 /**
- * 最小占位托盘图标（16x16 透明 PNG，base64 内嵌）。
- * 一个 1x1 浅色像素的极简图——功能可用，视觉留 Milestone H 美术资源（.ico 多分辨率）。
+ * 加载正式托盘图标。资源缺失/损坏时保留可见兜底，避免整个常驻应用因图标失败退出。
  */
-function createPlaceholderIcon(): Electron.NativeImage {
-  // 16x16 单色（浅灰 #888）PNG，避免全透明看不见。
+function loadTrayIcon(iconPath: string): Electron.NativeImage {
+  const icon = nativeImage.createFromPath(iconPath);
+  if (!icon.isEmpty()) return icon;
+  console.error(`[tray] icon failed to load: ${iconPath}; using fallback`);
+  // 仅故障兜底：16x16 单色 PNG。正常开发/打包路径必须使用 usage-monitor.ico。
   const pngBase64 =
     "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAOklEQVR4nO3OQQ0AIBADwYJ/87mdQSuY" +
     "iEtKA7W4r1o2s7tn7T7bABAEQRAEQRAEQRAEQRAEQRAEQRAEQf8D8u4PJLpv6T8AAAAASUVORK5CYII=";

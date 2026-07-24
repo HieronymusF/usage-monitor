@@ -22,11 +22,18 @@
  * - 单请求超时 2s。
  * - 守护进程意外退出 → reject 在途 + 下次请求自动重启（lazy restart）。
  *
- * 红线：只收发进程名 / 光标坐标 / 窗口几何 / DPI。无 PID 路径/标题/凭据。
+ * 红线：只收发进程名 / 光标坐标 / 窗口几何 / DPI / 鼠标左键事件位。
+ * 无 PID 路径/标题/凭据。
  */
 import { spawn } from "node:child_process";
 import type { ForegroundProbeResult } from "./foreground.js";
 import type { ProbeGeometry } from "../../shared/hover-geometry.js";
+
+/** Windows hover 协议在共享几何外附带的只读鼠标事件位。 */
+export interface HoverProbeGeometry extends ProbeGeometry {
+  /** 自上次探针以来发生过左键按下，或探针时左键仍按住。 */
+  primaryButtonPressed: boolean;
+}
 
 /** 默认 spawn：包装 node:child_process.spawn 为 ProbeChild。 */
 function defaultSpawn(executable: string, args: string[]): ProbeChild {
@@ -125,7 +132,7 @@ export class ProbeDaemon {
   }
 
   /** 取光标 + 指定窗口几何。失败时降级 null。 */
-  async getHoverGeometry(hwndDecimal: string): Promise<ProbeGeometry | null> {
+  async getHoverGeometry(hwndDecimal: string): Promise<HoverProbeGeometry | null> {
     try {
       await this.#ensureStarted();
       const line = await this.#request("hover", { hwnd: hwndDecimal });
@@ -363,7 +370,7 @@ export function parseProcessName(line: string): ForegroundProbeResult {
 }
 
 /** 解析 hover 响应。非法/error/null → null（降级）。导出供测试。 */
-export function parseGeometry(line: string): ProbeGeometry | null {
+export function parseGeometry(line: string): HoverProbeGeometry | null {
   try {
     const value: unknown = JSON.parse(line);
     if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
@@ -379,12 +386,14 @@ export function parseGeometry(line: string): ProbeGeometry | null {
     for (const f of fields) {
       if (typeof v[f] !== "number") return null;
     }
+    if (typeof v.primaryButtonPressed !== "boolean") return null;
     return {
       cursorX: v.cursorX as number,
       cursorY: v.cursorY as number,
       windowLeft: v.windowLeft as number,
       windowTop: v.windowTop as number,
       dpi: v.dpi as number,
+      primaryButtonPressed: v.primaryButtonPressed,
     };
   } catch {
     return null;

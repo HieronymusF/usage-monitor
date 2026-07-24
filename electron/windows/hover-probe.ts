@@ -7,7 +7,7 @@
  * 设计：守护进程只输出 raw 几何（cursor 坐标 + 窗口 DWM bounds + DPI），所有几何判断
  * 逻辑在 shared/hover-geometry.ts 的纯函数里（100% CI 可测）。
  *
- * 稳定性：任何失败降级 false（保守：不确定就不展开，避免误触）。
+ * 稳定性：任何失败降级为未命中且无点击（保守：不确定就不切换，避免误触）。
  */
 import type { BrowserWindow } from "electron";
 import { isPointerOverSurface } from "../../shared/hover-geometry.js";
@@ -18,6 +18,11 @@ export interface HoverProbeOptions {
   daemon: ProbeDaemon;
 }
 
+export interface HoverPointerState {
+  over: boolean;
+  primaryButtonPressed: boolean;
+}
+
 export class HoverProbe {
   readonly #daemon: ProbeDaemon;
 
@@ -25,20 +30,27 @@ export class HoverProbe {
     this.#daemon = options.daemon;
   }
 
-  /**
-   * 判断光标是否在指定窗口的可见形状内。
-   * @param window 目标 BrowserWindow（orb 或 edge-capsule）
-   * @param kind 该窗口的 surface kind（决定用哪个几何判断函数）
-   * @returns true=命中；false=未命中或探测失败（保守）
-   */
-  async isPointerOver(window: BrowserWindow, kind: "orb" | "edge-capsule"): Promise<boolean> {
-    if (window.isDestroyed()) return false;
+  /** 读取窗口命中状态与全局左键事件位。失败时保守返回未命中、未点击。 */
+  async readPointerState(
+    window: BrowserWindow,
+    kind: "orb" | "edge-capsule",
+  ): Promise<HoverPointerState> {
+    const fallback: HoverPointerState = { over: false, primaryButtonPressed: false };
+    if (window.isDestroyed()) return fallback;
     const hwnd = readHwndDecimal(window);
-    if (hwnd === null) return false;
+    if (hwnd === null) return fallback;
 
     const geometry = await this.#daemon.getHoverGeometry(hwnd);
-    if (geometry === null) return false;
-    return isPointerOverSurface(geometry, kind);
+    if (geometry === null) return fallback;
+    return {
+      over: isPointerOverSurface(geometry, kind),
+      primaryButtonPressed: geometry.primaryButtonPressed,
+    };
+  }
+
+  /** 兼容只关心 hover 的调用方。 */
+  async isPointerOver(window: BrowserWindow, kind: "orb" | "edge-capsule"): Promise<boolean> {
+    return (await this.readPointerState(window, kind)).over;
   }
 }
 

@@ -23,20 +23,40 @@ import type {
   DisplayPreference,
   Language,
   PreferenceKey,
+  PreferenceValue,
   Settings,
   ThemePreference,
 } from "../shared/settings.js";
 import { DEFAULT_SETTINGS, resolveLanguageFromLocale } from "../shared/settings.js";
+import { inAsar, extraResource, type ResourceContext } from "./paths.js";
+import { applyAutoLaunchPreference, type AutoLaunchRuntime } from "./auto-launch.js";
+
+/**
+ * Milestone H：资源路径解析上下文。开发态用项目根；打包态用 resourcesPath + app.asar。
+ * main.ts 启动时构造一次，所有资源定位经 inAsar（asar 内）/ unpacked（asar 解包）解析，
+ * 不再裸 join(app.getAppPath(), ...)。详见 electron/paths.ts。
+ */
+const resourceCtx: ResourceContext = {
+  packaged: app.isPackaged,
+  appPath: app.getAppPath(),
+  resourcesPath: process.resourcesPath,
+};
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
-const windowManager = new SurfaceWindowManager();
-const bridgeClient = new CompanionBridgeClient({
-  bridgeScript: join(app.getAppPath(), "dist", "companionBridge.js"),
-});
-// Milestone E-F/G：用户偏好仓库（主进程单一真相源）。
-// 注意：不在模块初始化阶段创建（也不调 app.getLocale/getPreferredSystemLanguages）——
-// Electron 这些 API 在 app.whenReady() 前不可靠。settingsRepo 在 whenReady 内创建并 load。
+// Milestone E-F/G/H：用户偏好仓库（主进程单一真相源）。
+// 只在 whenReady 内创建/load；这里先声明供 windowManager 的惰性位置回调捕获。
 let settingsRepo: SettingsRepository | undefined;
+const windowManager = new SurfaceWindowManager({
+  readPlacement: (kind) => settingsRepo?.getWindowPlacement(kind) ?? null,
+  writePlacement: (kind, placement) => {
+    settingsRepo?.updateWindowPlacement(kind, placement);
+  },
+});
+const bridgeClient = new CompanionBridgeClient({
+  // Milestone H：bridge.js 在 asar 内（Electron-as-node 能 require asar 内 .js），
+  // 开发态在项目根 dist/。打包后 = resources/app.asar/dist/companionBridge.js。
+  bridgeScript: inAsar(["dist", "companionBridge.js"], resourceCtx),
+});
 let unregisterIpc: (() => void) | undefined;
 let autoSurfaceWatcher: AutoSurfaceWatcher | undefined;
 let orbHoverController: OrbHoverController | undefined;
@@ -56,7 +76,10 @@ let shuttingDown = false;
 function getProbeDaemon(): ProbeDaemon | null {
   if (process.platform !== "win32") return null;
   if (probeDaemon) return probeDaemon;
-  const scriptPath = join(app.getAppPath(), "electron", "probe-daemon.ps1");
+  // Milestone H：ps1 用 extraResources 复制到 resources/ 根（asar 外），
+  // powershell.exe 看不到 asar 虚拟 FS，必须放 asar 外。
+  // 开发态在项目根 electron/；打包后 = resources/probe-daemon.ps1。
+  const scriptPath = extraResource("probe-daemon.ps1", "electron/probe-daemon.ps1", resourceCtx);
   if (!existsSync(scriptPath)) {
     console.error(`[probe-daemon] script not found: ${scriptPath}; probes disabled`);
     return null;
@@ -122,6 +145,28 @@ function applyThemePreference(pref: ThemePreference): void {
 }
 
 /**
+ * Milestone H 切片 2：把持久化偏好同步到 Windows 登录项。
+ * 开发态/非 Windows 由 auto-launch.ts 明确跳过；portable 必须注册外层稳定 exe，
+ * 不能注册解压到临时目录的 process.execPath。
+ */
+function applyAutoLaunch(enabled: boolean): void {
+  const portableExecutableFile = process.env.PORTABLE_EXECUTABLE_FILE;
+  const runtime: AutoLaunchRuntime = {
+    packaged: app.isPackaged,
+    platform: process.platform,
+    execPath: process.execPath,
+    ...(typeof portableExecutableFile === "string" ? { portableExecutableFile } : {}),
+  };
+  const result = applyAutoLaunchPreference(enabled, runtime, app);
+  if (result.kind === "failed") {
+    console.error(
+      "[auto-launch] failed:",
+      result.error instanceof Error ? result.error.message : String(result.error),
+    );
+  }
+}
+
+/**
  * Milestone E-F：应用展示模式偏好的副作用。
  * auto → 启动前台检测 watcher（仅生产路径）；非 auto → 停 watcher + 固定显示该 surface。
  * 返回当前应显示的初始 surface（auto 时由 watcher 决定，此处返当前可见 surface）。
@@ -131,6 +176,9 @@ async function applyDisplayPreference(
   initialSurface: SurfaceKind,
 ): Promise<SurfaceKind> {
   if (!shouldRunAutoSurface()) return initialSurface;
+  // Orb 的 hover / 外部点击 / 展开态离开收起在固定展示模式下也必须工作，
+  // 生命周期不能绑在 AutoSurfaceWatcher 上。
+  startOrbInteraction();
   if (pref === "auto") {
     // 启动 watcher（若未运行）。watcher 接管 surface 切换。
     startAutoSurface(initialSurface);
@@ -145,25 +193,26 @@ async function applyDisplayPreference(
   return target;
 }
 
-/** 启动前台检测 watcher + hover controller（幂等：已运行则跳过）。 */
+/** 启动前台检测 watcher（幂等：已运行则跳过）。 */
 function startAutoSurface(initialSurface: SurfaceKind): void {
   if (autoSurfaceWatcher) return;
   autoSurfaceWatcher = new AutoSurfaceWatcher(createForegroundAdapter(), windowManager, {
     initialSurface,
   });
   autoSurfaceWatcher.start();
-  orbHoverController = createOrbHoverController();
-  orbHoverController?.start();
 }
 
-/** 停止前台检测 watcher + hover controller（幂等）。 */
+/** 停止前台检测 watcher；固定 Orb 模式仍需保留 Orb 交互控制器。 */
 function stopAutoSurface(): void {
-  orbHoverController?.stop();
-  orbHoverController = undefined;
-  offSurfaceChange?.();
-  offSurfaceChange = undefined;
   autoSurfaceWatcher?.stop();
   autoSurfaceWatcher = undefined;
+}
+
+/** 启动独立的 Orb 交互控制器；Card/Bar 可见时控制器会自行静默。 */
+function startOrbInteraction(): void {
+  if (orbHoverController) return;
+  orbHoverController = createOrbHoverController();
+  orbHoverController?.start();
 }
 
 /**
@@ -172,7 +221,7 @@ function stopAutoSurface(): void {
  * 测试调真实 createPreferenceCommitter，不再复制逻辑（验收 P2 修复）。
  * 在 whenReady 后（repo/tray/windowManager 就绪）创建。
  */
-let commitPreference: (<K extends PreferenceKey>(key: K, value: string) => Settings) | undefined;
+let commitPreference: ((key: PreferenceKey, value: PreferenceValue) => Settings) | undefined;
 
 /** 取当前可见 surface（无则 card），用于 displayPreference 切到 auto 时的 watcher 初值。 */
 function getVisibleSurfaceSafe(): SurfaceKind {
@@ -202,6 +251,9 @@ function makeTrayCallbacks(): TrayMenuCallbacks {
     setLanguage: (lang: Language) => {
       commitPreference?.("language", lang);
     },
+    setAutoLaunch: (enabled: boolean) => {
+      commitPreference?.("autoLaunch", enabled);
+    },
     refresh: () => {
       // 验收轮 4 P2：调真实 performTrayRefresh 协调函数（refresh→broadcast+错误处理），
       // 不在回调里手写串联——测试和 main.ts 调同一份逻辑，漏广播会被测出。
@@ -226,10 +278,10 @@ function registerHoverSuspendIpc(): void {
     if (senderSurface !== "orb") return;
     orbHoverController?.suspend();
   });
-  ipcMain.on(desktopChannels.resumeHover, (event) => {
+  ipcMain.on(desktopChannels.resumeHover, (event, dragged: unknown) => {
     const senderSurface = windowManager.getSurfaceForWebContents(event.sender.id);
     if (senderSurface !== "orb") return;
-    orbHoverController?.resume();
+    orbHoverController?.resume(dragged === true);
   });
 }
 
@@ -356,6 +408,8 @@ if (!hasSingleInstanceLock) {
       if (process.env.CAPTURE_PREVIEW !== "1") {
         applyThemePreference(settings.themePreference);
       }
+      // 每次打包版启动都把持久化偏好与 Windows 登录项对齐；开发态明确跳过。
+      applyAutoLaunch(settings.autoLaunch);
       try {
         await bridgeClient.start();
       } catch (error) {
@@ -371,6 +425,7 @@ if (!hasSingleInstanceLock) {
           void applyDisplayPreference(pref, getVisibleSurfaceSafe());
         },
         resizeClient: (client) => windowManager.resizeCardWindow(client),
+        applyAutoLaunch,
       });
       // registerDesktopIpc 经 callbacks 走 commitPreference/getPreferences 统一入口（问题 2）。
       unregisterIpc = registerDesktopIpc(windowManager, bridgeClient, {
@@ -381,7 +436,11 @@ if (!hasSingleInstanceLock) {
       registerHoverSuspendIpc();
       // Milestone E-F：创建托盘（生产路径，dev/capture 也建便于调试）。
       if (process.env.CAPTURE_PREVIEW !== "1") {
-        trayHandle = createTray({ repo, callbacks: makeTrayCallbacks() });
+        trayHandle = createTray({
+          repo,
+          callbacks: makeTrayCallbacks(),
+          iconPath: extraResource("usage-monitor.ico", "resources/usage-monitor.ico", resourceCtx),
+        });
       }
       // SURFACE env：dev/capture 用，默认 card。生产由 displayPreference 决定。
       const initialSurface = (process.env.SURFACE ?? "card") as SurfaceKind;

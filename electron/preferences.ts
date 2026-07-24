@@ -17,9 +17,11 @@ import type {
   ClientKind,
   DisplayPreference,
   PreferenceKey,
+  PreferenceValue,
   Settings,
   ThemePreference,
 } from "../shared/settings.js";
+import { normalizePreference } from "../shared/settings.js";
 import type { SettingsRepository } from "./settings/repository.js";
 import type { SurfaceKind } from "../shared/desktop.js";
 
@@ -38,6 +40,8 @@ export interface PreferenceSideEffects {
   applyDisplay(pref: DisplayPreference): void;
   /** 客户端副作用（main.ts: resizeCardWindow）。 */
   resizeClient(client: ClientKind): void;
+  /** 开机自启副作用（main.ts: app.setLoginItemSettings）。 */
+  applyAutoLaunch(enabled: boolean): void;
 }
 
 /**
@@ -47,8 +51,8 @@ export interface PreferenceSideEffects {
 export function createPreferenceCommitter(
   repo: SettingsRepository,
   effects: PreferenceSideEffects,
-): <K extends PreferenceKey>(key: K, value: string) => Settings {
-  return function commitPreference<K extends PreferenceKey>(key: K, value: string): Settings {
+): (key: PreferenceKey, value: PreferenceValue) => Settings {
+  return function commitPreference(key: PreferenceKey, value: PreferenceValue): Settings {
     const prev = repo.get();
     const updated = repo.update(key, value);
     if (updated === prev) return updated; // 值未变，短路（不广播/不 rebuild/无副作用）。
@@ -67,6 +71,9 @@ export function createPreferenceCommitter(
         break;
       case "language":
         // 语言切换只影响菜单文案（rebuild 已处理）和 renderer（broadcast 已处理），无额外副作用。
+        break;
+      case "autoLaunch":
+        effects.applyAutoLaunch(updated.autoLaunch);
         break;
     }
     return updated;
@@ -102,7 +109,7 @@ export function resolveSenderTrust(
 /** IPC handler 的偏好回调接口（与 ipc.ts 的 DesktopIpcCallbacks 对齐，但独立以便测）。 */
 export interface PreferenceIpcCallbacks {
   getPreferences(): Settings;
-  onSetPreference(key: PreferenceKey, value: string): void;
+  onSetPreference(key: PreferenceKey, value: PreferenceValue): void;
 }
 
 /**
@@ -139,8 +146,9 @@ export function handleSetPreference(
     log(`[ipc] setPreference rejected: unknown sender ${senderId}`);
     return false;
   }
-  if (typeof key !== "string" || typeof value !== "string") return false;
-  callbacks.onSetPreference(key as PreferenceKey, value);
+  const normalized = normalizePreference(key, value);
+  if (!normalized) return false;
+  callbacks.onSetPreference(normalized.key, normalized.value);
   return true;
 }
 

@@ -6,6 +6,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { DEFAULT_SETTINGS } from "../../shared/settings.ts";
 
 test("displayStore: 初始 displayPreference=auto", async () => {
   const { useDisplayStore } = await import("../../renderer/src/stores/displayStore.ts");
@@ -23,6 +24,8 @@ test("displayStore: hydrateFromPreferences 应用主进程推送值", async () =
     displayPreference: "orb",
     activeClient: "codex",
     language: "zh-CN",
+    autoLaunch: false,
+    windowPlacements: DEFAULT_SETTINGS.windowPlacements,
   });
 
   assert.equal(useDisplayStore.getState().displayPreference, "orb");
@@ -39,6 +42,8 @@ test("displayStore: hydrateFromPreferences 幂等（值一致不变）", async (
     displayPreference: "orb", // 一致
     activeClient: "codex",
     language: "zh-CN",
+    autoLaunch: false,
+    windowPlacements: DEFAULT_SETTINGS.windowPlacements,
   });
 
   assert.equal(useDisplayStore.getState().displayPreference, before);
@@ -54,6 +59,8 @@ test("displayStore: hydrateFromPreferences 切换 card → indicator-bar → aut
     displayPreference: "indicator-bar",
     activeClient: "codex",
     language: "zh-CN",
+    autoLaunch: false,
+    windowPlacements: DEFAULT_SETTINGS.windowPlacements,
   });
   assert.equal(useDisplayStore.getState().displayPreference, "indicator-bar");
 
@@ -63,6 +70,8 @@ test("displayStore: hydrateFromPreferences 切换 card → indicator-bar → aut
     displayPreference: "auto",
     activeClient: "codex",
     language: "zh-CN",
+    autoLaunch: false,
+    windowPlacements: DEFAULT_SETTINGS.windowPlacements,
   });
   assert.equal(useDisplayStore.getState().displayPreference, "auto");
 });

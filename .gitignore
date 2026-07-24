@@ -29,6 +29,9 @@ bundle/
 *.exe
 usage-monitor-build-cache/
 
+# electron-builder output (Milestone H) — 产物，npm run dist 重新生成
+release/
+
 # Visual diff tool — actual/diff 是每次本地生成的截图产物，不入 git
 # _baseline 入 git（作为像素 diff 对比基准）
 docs/ui-designs/_actual/

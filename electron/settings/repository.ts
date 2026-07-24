@@ -24,6 +24,12 @@ import {
   type PreferenceKey,
   normalizePreference,
 } from "../../shared/settings.js";
+import { validateSurfaceKind, type SurfaceKind } from "../../shared/desktop.js";
+import {
+  normalizeWindowPlacement,
+  sameWindowPlacement,
+  type WindowPlacement,
+} from "../../shared/window-placement.js";
 
 export interface SettingsRepositoryOptions {
   /** settings.json 所在目录（生产用 app.getPath("userData")，测试用 tmpdir）。 */
@@ -93,7 +99,7 @@ export class SettingsRepository {
    * key/value 非法时忽略，返回当前值不变（normalizePreference 返 null）。
    * 写盘异步串行；需确保落盘时 await flush()。
    */
-  update(key: PreferenceKey, value: string): Settings {
+  update(key: PreferenceKey, value: unknown): Settings {
     const normalized = normalizePreference(key, value);
     if (!normalized) return this.#current;
     // 值未变则不写盘、不产生新引用（调用方可据此判别是否真正变化）。
@@ -102,6 +108,32 @@ export class SettingsRepository {
     // 排到队列尾：上一个写盘完成后才写本次。保证严格串行，无并发 rename。
     this.#queueTail = this.#queueTail.then(() => this.#persist());
     return this.#current;
+  }
+
+  /**
+   * 主进程专用：更新某个 surface 的窗口位置。
+   * 不进入 renderer setPreference 契约，避免不受信任的 renderer 直接写屏幕坐标。
+   */
+  updateWindowPlacement(kind: SurfaceKind, value: unknown): Settings {
+    const normalizedKind = validateSurfaceKind(kind);
+    const normalizedPlacement = normalizeWindowPlacement(value);
+    if (!normalizedKind || !normalizedPlacement) return this.#current;
+    const previous = this.#current.windowPlacements[normalizedKind];
+    if (sameWindowPlacement(previous, normalizedPlacement)) return this.#current;
+    this.#current = {
+      ...this.#current,
+      windowPlacements: {
+        ...this.#current.windowPlacements,
+        [normalizedKind]: normalizedPlacement,
+      },
+    };
+    this.#queueTail = this.#queueTail.then(() => this.#persist());
+    return this.#current;
+  }
+
+  /** 当前某个 surface 的已保存位置；未保存返回 null。 */
+  getWindowPlacement(kind: SurfaceKind): WindowPlacement | null {
+    return this.#current.windowPlacements[kind];
   }
 
   /** 等待所有已排队的写盘完成（测试和优雅关闭用）。 */

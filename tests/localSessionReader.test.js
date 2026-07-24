@@ -69,3 +69,43 @@ test("delta math is correct across incremental reads and a counter reset", async
   const result = await reader.read(7);
   assert.equal(result.tokenUsage.lifetimeTotal, 30);
 });
+
+test("Codex reader recovers the newest persisted Pro rate-limit snapshot", async () => {
+  const root = await mkdtemp(join(tmpdir(), "usage-rate-limit-"));
+  const sessions = join(root, "sessions");
+  await mkdir(sessions);
+  const older = JSON.stringify({
+    timestamp: "2026-07-24T09:00:00.000Z",
+    type: "event_msg",
+    payload: {
+      type: "token_count",
+      rate_limits: {
+        limit_id: "codex",
+        plan_type: "plus",
+        primary: { used_percent: 10, window_minutes: 300, resets_at: 1785330000 },
+      },
+    },
+  });
+  const newest = JSON.stringify({
+    timestamp: "2026-07-24T10:13:49.073Z",
+    type: "event_msg",
+    payload: {
+      type: "token_count",
+      rate_limits: {
+        limit_id: "codex",
+        plan_type: "pro",
+        primary: { used_percent: 5, window_minutes: 10080, resets_at: 1785339360 },
+      },
+    },
+  });
+  await writeFile(join(sessions, "session.jsonl"), `${older}\n${newest}\n`);
+
+  const reader = new CodexSessionLogReader({
+    logRoot: sessions,
+    cachePath: join(root, "cache.json"),
+  });
+  const snapshot = await reader.readLatestRateLimits();
+  assert.equal(snapshot.observedAt, "2026-07-24T10:13:49.073Z");
+  assert.equal(snapshot.response.rateLimits.plan_type, "pro");
+  assert.equal(snapshot.response.rateLimits.primary.used_percent, 5);
+});

@@ -1,5 +1,5 @@
 /**
- * useOrbDrag — D-3 切片 3：Orb 拖动 + click 展开 + 松手贴边。
+ * useOrbDrag — Orb 拖动 + click 展开 + 松手位置交给主进程判定边缘/自由。
  *
  * 返回一组 pointer handler props，spread 到 OrbShell（OrbShell 已设 WebkitAppRegion:"no-drag"，
  * 由本 hook 接管拖动，不依赖 OS drag region —— 因为 OS drag 抑制 renderer 指针事件，
@@ -10,8 +10,8 @@
  *   pointermove → 算总位移；shouldStartDrag 超 6 DIP 才 moveOrb（rAF 16ms 节流）。
  *                 bounds 未就绪前**绝不**移动窗口（否则跳向屏幕原点）。
  *   pointerup   → 未超阈值 = click → showSurface("edge-capsule")；
- *                 超阈值 = drag → dragOrbEnd()（贴边）
- *   pointercancel / lostpointercapture → 中断（不贴边、不展开、清状态）
+ *                 超阈值 = drag → dragOrbEnd()（碰边吸附，否则保存自由位置）
+ *   pointercancel / lostpointercapture → 中断（不保存、不展开、清状态）
  *
  * 单位：renderer event.screenX 是 CSS 像素 = DIP（Electron renderer 标准），与
  * setPosition 的 DIP 单位一致，startBounds.x + totalDx 直接相加。
@@ -37,7 +37,7 @@ export interface OrbDragHandlers {
   onPointerDown: (event: React.PointerEvent) => void;
   onPointerMove: (event: React.PointerEvent) => void;
   onPointerUp: (event: React.PointerEvent) => void;
-  /** 中断：取消/丢失捕获。不贴边、不展开。 */
+  /** 中断：取消/丢失捕获。不保存、不展开。 */
   onPointerCancel: (event: React.PointerEvent) => void;
   /** 丢失 pointer capture（系统剥夺）→ 当作取消。 */
   onLostPointerCapture: (event: React.PointerEvent) => void;
@@ -195,26 +195,27 @@ export function useOrbDrag(): OrbDragHandlers {
 
     stateRef.current = null;
 
-    // P1-1：恢复 hover（resume 后必须等鼠标离开 Orb 一次才重新允许展开）。
-    // 取消时也 resume（恢复 hover 能力，但 requireLeaveBeforeExpand 生效防误触）。
-    window.monitor?.resumeHover?.();
-
-    // 取消（pointercancel / lostpointercapture）：不贴边、不展开，直接结束。
-    if (canceled) return;
+    // 取消（pointercancel / lostpointercapture）：不保存、不展开，恢复原 hover 状态。
+    if (canceled) {
+      window.monitor?.resumeHover?.(false);
+      return;
+    }
 
     if (typeof window === "undefined" || !window.monitor) return;
     if (wasDragging) {
-      // P2：判为拖动且 bounds 可用时，**先**把最终目标坐标发给 moveOrb，再 dragOrbEnd 贴边。
+      // 判为拖动且 bounds 可用时，先把最终目标坐标发给 moveOrb，再由主进程判定边缘/自由。
       // 覆盖无 pointermove 的快速 down→up，以及最后一次 move 到 up 仍有位移的情况。
-      // 确保窗口先到松手位置，再吸附该位置的最近边缘。
+      // 确保窗口先到松手位置，再由主进程 clamp 到 workArea 并落盘。
       if (state.startBounds !== null) {
         window.monitor.moveOrb?.(state.startBounds.x + upDx, state.startBounds.y + upDy);
       }
       window.monitor.dragOrbEnd?.();
+      window.monitor.resumeHover?.(true);
     } else {
+      window.monitor.resumeHover?.(false);
       // click 展开（未超阈值）：复用 showSurface。
       // P2-1：manager surface 变更监听通知 OrbHoverController state=expanded，
-      // 这样点击后立即移开鼠标也能进离开计时分支，420ms 后收起。
+      // 这样点击后立即移开鼠标也能进入 Capsule 的 1 秒离开计时。
       window.monitor.showSurface?.("edge-capsule");
     }
   }, []);

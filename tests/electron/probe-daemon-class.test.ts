@@ -188,10 +188,12 @@ test("ProbeDaemon: hover 请求走 fake child", async () => {
       windowLeft: 0,
       windowTop: 0,
       dpi: 96,
+      primaryButtonPressed: true,
     }),
   );
   const geom = await p;
   assert.ok(geom !== null);
   assert.equal(geom?.cursorX, 10);
+  assert.equal(geom?.primaryButtonPressed, true);
   await daemon.dispose();
 });

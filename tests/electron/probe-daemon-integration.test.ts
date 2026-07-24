@@ -136,10 +136,12 @@ maybe("P0: hover 响应携带请求 id（有效 HWND）", async () => {
     id?: number;
     cursorX?: number;
     dpi?: number;
+    primaryButtonPressed?: boolean;
   };
   assert.equal(parsed.id, 201, "hover 响应回传 id=201");
   assert.equal(typeof parsed.cursorX, "number", "含 cursorX");
   assert.equal(typeof parsed.dpi, "number", "含 dpi");
+  assert.equal(typeof parsed.primaryButtonPressed, "boolean", "含鼠标左键事件位");
 });
 
 maybe("P0: hover 无效 HWND 返回带 id 的 error", async () => {

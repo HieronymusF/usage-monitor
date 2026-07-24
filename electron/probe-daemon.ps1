@@ -10,13 +10,14 @@
 #         {"id":<n>,"cmd":"quit"}                   → 退出
 #   响应（fg）：{"id":<n>,"processName":"code"} / {"id":<n>,"processName":null}
 #              null = 成功检测但无可用前台窗口（按产品规则→orb）
-#   响应（hover）：{"id":<n>,"cursorX":..,..,"dpi":..}
+#   响应（hover）：{"id":<n>,"cursorX":..,..,"dpi":..,"primaryButtonPressed":false}
 #   响应（错误）：{"id":<n>,"error":"..."}
 #              fg 的 API/PInvoke/Get-Process 异常必须返回 error（P1 修复），不能伪装成 null。
 #
 # 主进程 (probe-daemon.ts) 按 requestId 匹配响应（超时/乱序不错配）。
 #
-# 红线：只输出进程名 / 光标坐标 / 窗口几何 / DPI。不输出 PID 路径/窗口标题/凭据。不联网。
+# 红线：只输出进程名 / 光标坐标 / 窗口几何 / DPI / 鼠标左键事件位。
+# 不输出 PID 路径/窗口标题/凭据。不联网。
 # 退出：stdin 关闭（EOF）或收到 {"cmd":"quit"}。
 
 param()
@@ -42,6 +43,7 @@ namespace CodexUsage {
         [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
         [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr hwnd);
         [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);
+        [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
     }
 }
 '@
@@ -94,6 +96,9 @@ function Get-HoverGeometry {
 
         $dpi = [CodexUsage.Probe]::GetDpiForWindow($handle)
         if ($dpi -le 0) { $dpi = 96 }
+        # VK_LBUTTON=0x01。高位=当前按住；低位=自上次查询以来发生过按下，可捕获短点击。
+        $mouseBits = [uint16]([int][CodexUsage.Probe]::GetAsyncKeyState(0x01) -band 0xFFFF)
+        $primaryButtonPressed = (($mouseBits -band 0x8001) -ne 0)
 
         return [pscustomobject]@{
             cursorX      = [long]$cursor.X
@@ -103,6 +108,7 @@ function Get-HoverGeometry {
             windowWidth  = [long]($rect.Right - $rect.Left)
             windowHeight = [long]($rect.Bottom - $rect.Top)
             dpi          = [int]$dpi
+            primaryButtonPressed = [bool]$primaryButtonPressed
         }
     } catch {
         return $null

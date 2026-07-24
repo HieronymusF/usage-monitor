@@ -70,7 +70,9 @@ export class CodexSource implements ClientUsageSource {
     // Read them first so the snapshot is useful even without an app-server.
     const local = await this.logReader.read(30);
     warnings.push(...local.warnings);
-    let tokenUsage = local.tokenUsage;
+    // Local aggregation is lifetime usage, not the currently open task. Keep
+    // the lifetime/daily fields but do not mislabel the aggregate as current.
+    let tokenUsage: TokenUsage = { ...local.tokenUsage, total: null };
 
     // Quota comes only from the public app-server surface. Authentication stays
     // inside Codex; this plugin never reads or forwards login credentials.
@@ -86,6 +88,18 @@ export class CodexSource implements ClientUsageSource {
       quotaOk = true;
     } catch (error) {
       warnings.push(this.warningFromError(error));
+      const persistedRate = await this.logReader.readLatestRateLimits();
+      if (persistedRate) {
+        const rate = normalizeRateLimits(persistedRate.response, "local_session");
+        warnings.push(...rate.warnings);
+        planType = rate.planType;
+        limits = rate.limits;
+        quotaOk = limits.length > 0;
+        warnings.push({
+          code: "LOCAL_RATE_LIMIT_FALLBACK",
+          message: "独立 app-server 不可用，已使用 Codex 桌面端写入的最近官方配额快照。",
+        });
+      }
     }
 
     try {

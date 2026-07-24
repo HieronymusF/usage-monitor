@@ -12,6 +12,12 @@
  * 纪律 C（红线无条件强制）：校验在最靠近入口处做，畸形输入不抛、返默认。
  * 纪律 F（纯函数五类输入）：validateSettings 覆盖 null/非对象/字段缺失/非法值/正常值。
  */
+import {
+  createDefaultWindowPlacements,
+  validateWindowPlacements,
+  type WindowPlacements,
+} from "./window-placement.js";
+export type { WindowPlacement, WindowPlacements, WindowSnapEdge } from "./window-placement.js";
 
 /** 主题偏好：auto 跟随系统，light/dark 强制。 */
 export type ThemePreference = "auto" | "light" | "dark";
@@ -22,11 +28,24 @@ export type ClientKind = "codex" | "zcode";
 /** 界面语言。 */
 export type Language = "zh-CN" | "en";
 
-/** schema 版本；结构变更时升版 + 迁移。 */
-export const SETTINGS_VERSION = 1;
+/** schema 版本；v3 新增 windowPlacements；v2 新增 autoLaunch。 */
+export const SETTINGS_VERSION = 3;
 
-/** 可设置的偏好字段 key（setPreference IPC 用）。 */
-export type PreferenceKey = "themePreference" | "displayPreference" | "activeClient" | "language";
+/** 偏好字段与值类型映射（repository / IPC / tray 共用）。 */
+export interface PreferenceValueMap {
+  themePreference: ThemePreference;
+  displayPreference: DisplayPreference;
+  activeClient: ClientKind;
+  language: Language;
+  autoLaunch: boolean;
+}
+
+/** 可设置的偏好字段 key（setPreference IPC + 托盘统一入口用）。 */
+export type PreferenceKey = keyof PreferenceValueMap;
+export type PreferenceValue = PreferenceValueMap[PreferenceKey];
+export type NormalizedPreference = {
+  [K in PreferenceKey]: { key: K; value: PreferenceValueMap[K] };
+}[PreferenceKey];
 
 /**
  * 把系统语言标识（BCP-47，如 app.getPreferredSystemLanguages()[0] 返回的 "zh-CN"/"zh-Hans"/"en-US"）
@@ -44,12 +63,10 @@ export function resolveLanguageFromLocale(locale: string): Language {
 }
 
 /** 持久化的设置（不含任何敏感数据）。 */
-export interface Settings {
+export interface Settings extends PreferenceValueMap {
   version: number;
-  themePreference: ThemePreference;
-  displayPreference: DisplayPreference;
-  activeClient: ClientKind;
-  language: Language;
+  /** 主进程维护的 per-surface 位置；renderer 不可经 setPreference 写入。 */
+  windowPlacements: WindowPlacements;
 }
 
 /** 默认设置（schema 缺失/损坏/非法字段时的兜底）。 */
@@ -59,6 +76,8 @@ export const DEFAULT_SETTINGS: Settings = {
   displayPreference: "auto",
   activeClient: "codex",
   language: "zh-CN",
+  autoLaunch: false,
+  windowPlacements: createDefaultWindowPlacements(),
 };
 
 const THEME_PREFERENCES: readonly ThemePreference[] = ["auto", "light", "dark"];
@@ -85,11 +104,11 @@ function isLanguage(v: unknown): v is Language {
  *
  * - 非对象 / null / 数组 → DEFAULT_SETTINGS
  * - 单字段非法 → 该字段回退默认，其余保留（部分恢复，不因一字段丢全部）
- * - version 不匹配 → 仍逐字段校验（当前 v1 无破坏性变更；后续版本在此加迁移）
+ * - version 不匹配 → 仍逐字段校验（v1→v2→v3 均为 additive migration）
  */
 export function validateSettings(input: unknown): Settings {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
-    return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, windowPlacements: createDefaultWindowPlacements() };
   }
   const obj = input as Record<string, unknown>;
   return {
@@ -102,6 +121,10 @@ export function validateSettings(input: unknown): Settings {
       : DEFAULT_SETTINGS.displayPreference,
     activeClient: isClientKind(obj.activeClient) ? obj.activeClient : DEFAULT_SETTINGS.activeClient,
     language: isLanguage(obj.language) ? obj.language : DEFAULT_SETTINGS.language,
+    // v1 → v2 迁移：旧文件没有 autoLaunch，安全默认关闭。
+    autoLaunch: typeof obj.autoLaunch === "boolean" ? obj.autoLaunch : DEFAULT_SETTINGS.autoLaunch,
+    // v1/v2 → v3 迁移：旧文件没有位置 map，所有 surface 回退未保存。
+    windowPlacements: validateWindowPlacements(obj.windowPlacements),
   };
 }
 
@@ -110,10 +133,7 @@ export function validateSettings(input: unknown): Settings {
  * 返回 null 表示 key/value 非法，调用方应忽略。
  * 返回 { key, value } 表示合法，可直接用于更新。
  */
-export function normalizePreference(
-  key: unknown,
-  value: unknown,
-): { key: PreferenceKey; value: string } | null {
+export function normalizePreference(key: unknown, value: unknown): NormalizedPreference | null {
   if (typeof key !== "string") return null;
   switch (key) {
     case "themePreference":
@@ -124,6 +144,8 @@ export function normalizePreference(
       return isClientKind(value) ? { key, value } : null;
     case "language":
       return isLanguage(value) ? { key, value } : null;
+    case "autoLaunch":
+      return typeof value === "boolean" ? { key, value } : null;
     default:
       return null;
   }

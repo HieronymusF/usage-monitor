@@ -62,3 +62,49 @@ test("Codex source uses app-server quota and remains available without local tok
   assert.equal(snapshot.limits[0].source, "app_server");
   source.close();
 });
+
+test("Codex source falls back to persisted Pro quota without mislabeling lifetime as current task", async () => {
+  const client = new FakeAppServerClient();
+  client.readRateLimits = async () => {
+    client.rateLimitReads += 1;
+    throw new Error("packaged app-server cannot be executed");
+  };
+  const local = {
+    ...emptyLocal,
+    tokenUsage: {
+      ...emptyLocal.tokenUsage,
+      total: 1_000_000_000,
+      lifetimeTotal: 1_000_000_000,
+      daily: [{ date: "2026-07-24", tokens: 36_400_000 }],
+      source: "local_session",
+      quality: "local_estimate",
+    },
+  };
+  const logReader = {
+    read: async () => local,
+    readLatestRateLimits: async () => ({
+      observedAt: "2026-07-24T10:13:49.073Z",
+      response: {
+        rateLimits: {
+          limit_id: "codex",
+          plan_type: "pro",
+          primary: { used_percent: 5, window_minutes: 10080, resets_at: 1785339360 },
+        },
+      },
+    }),
+  };
+  const source = new CodexSource(client, logReader, {
+    now: () => new Date("2026-07-24T10:14:00.000Z"),
+    setTimer: () => ({ unref() {} }),
+    clearTimer: () => {},
+  });
+
+  const snapshot = await source.refresh(true);
+  assert.equal(snapshot.planType, "pro");
+  assert.equal(snapshot.limits[0].remainingPercent, 95);
+  assert.equal(snapshot.limits[0].source, "local_session");
+  assert.equal(snapshot.tokenUsage.total, null);
+  assert.equal(snapshot.tokenUsage.lifetimeTotal, 1_000_000_000);
+  assert.ok(snapshot.warnings.some((warning) => warning.code === "LOCAL_RATE_LIMIT_FALLBACK"));
+  source.close();
+});

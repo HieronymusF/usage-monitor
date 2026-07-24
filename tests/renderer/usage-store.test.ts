@@ -18,6 +18,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { DEFAULT_SETTINGS } from "../../shared/settings.ts";
 import { useUsageStore } from "../../renderer/src/stores/usageStore.ts";
 import { codexDual } from "../../renderer/src/domain/fixtures/snapshots.ts";
 
@@ -101,6 +102,8 @@ test("usageStore: hydrateFromPreferences 应用主进程推送的 activeClient",
     displayPreference: "auto",
     activeClient: "zcode",
     language: "zh-CN",
+    autoLaunch: false,
+    windowPlacements: DEFAULT_SETTINGS.windowPlacements,
   });
   assert.equal(useUsageStore.getState().activeClient, "zcode");
 });
@@ -114,6 +117,8 @@ test("usageStore: hydrateFromPreferences 幂等（值一致不变）", () => {
     displayPreference: "auto",
     activeClient: "zcode", // 一致
     language: "zh-CN",
+    autoLaunch: false,
+    windowPlacements: DEFAULT_SETTINGS.windowPlacements,
   });
   assert.equal(useUsageStore.getState().activeClient, "zcode");
 });

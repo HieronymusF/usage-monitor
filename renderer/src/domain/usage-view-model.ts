@@ -28,6 +28,12 @@ export function toClientKind(clientId: string): ClientKind {
   return clientId === "zcode" ? "zcode" : "codex";
 }
 
+/** Codex 品牌套餐必须来自快照；未知时只显示 CODEX，绝不猜成 Plus。 */
+export function formatCodexBrand(planType: string | null): string {
+  const plan = planType?.trim();
+  return plan ? `CODEX · ${plan.toLocaleUpperCase("en-US")}` : "CODEX";
+}
+
 /**
  * 生成"今日"的日期 key。
  *
