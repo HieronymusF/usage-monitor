@@ -32,7 +32,12 @@ const zcodeAssistant = (id, input, output, timestamp) =>
   JSON.stringify({
     type: "assistant",
     timestamp,
-    message: { id, model: "m", role: "assistant", usage: { input_tokens: input, output_tokens: output } },
+    message: {
+      id,
+      model: "m",
+      role: "assistant",
+      usage: { input_tokens: input, output_tokens: output },
+    },
   });
 
 test("Codex bucket key 在 UTC+8 凌晨分到本地当日（不是 UTC 昨天）", async () => {
@@ -42,13 +47,14 @@ test("Codex bucket key 在 UTC+8 凌晨分到本地当日（不是 UTC 昨天）
   await mkdir(sessions);
   // record 时间戳 = 2026-07-18T00:15:00+08:00 = 2026-07-17T16:15:00Z
   // UTC 切片会得到 "2026-07-17"，但本地是 "2026-07-18"
-  await writeFile(
-    join(sessions, "s.jsonl"),
-    `${codexEvent(10, "2026-07-17T16:15:00.000Z")}\n`,
-  );
+  await writeFile(join(sessions, "s.jsonl"), `${codexEvent(10, "2026-07-17T16:15:00.000Z")}\n`);
+  // 注入与 fixture 同一时刻的 now：toUsage 的 cutoff（"过去 N 天"）相对 now 计算，
+  // 必须让 now 落在 fixture 当日，否则随系统日期推进 fixture 桶会被窗口滤掉。
+  const now = () => new Date("2026-07-17T16:15:00.000Z");
   const reader = new CodexSessionLogReader({
     logRoot: sessions,
     cachePath: cache,
+    now,
     timeZone: "Asia/Hong_Kong",
   });
   const result = await reader.read(7);
@@ -65,9 +71,12 @@ test("ZCode bucket key 在 UTC+8 凌晨分到本地当日（不是 UTC 昨天）
     join(sessions, "s.jsonl"),
     `${zcodeAssistant("a", 100, 10, "2026-07-17T16:15:00.000Z")}\n`,
   );
+  // 注入 now：与 Codex 用例同理，cutoff 相对 now 计算（见上注）。
+  const now = () => new Date("2026-07-17T16:15:00.000Z");
   const reader = new ZcodeSessionLogReader({
     logRoot: root,
     cachePath: cache,
+    now,
     timeZone: "Asia/Hong_Kong",
   });
   const result = await reader.read(7);
@@ -79,13 +88,14 @@ test("同一 UTC 时刻在 UTC 时区分桶为 UTC 当日（对照）", async ()
   const sessions = join(root, "sessions");
   const cache = join(root, "cache.json");
   await mkdir(sessions);
-  await writeFile(
-    join(sessions, "s.jsonl"),
-    `${codexEvent(10, "2026-07-17T16:15:00.000Z")}\n`,
-  );
+  await writeFile(join(sessions, "s.jsonl"), `${codexEvent(10, "2026-07-17T16:15:00.000Z")}\n`);
+  // 注入 now：cutoff 相对 now 计算。若不注入，now()=真实系统日期，fixture 桶
+  // 2026-07-17 会被 "过去 7 天" 窗口滤掉（这是本测试此前随系统日期漂移失败的根因）。
+  const now = () => new Date("2026-07-17T16:15:00.000Z");
   const reader = new CodexSessionLogReader({
     logRoot: sessions,
     cachePath: cache,
+    now,
     timeZone: "UTC", // 明确 UTC 时区
   });
   const result = await reader.read(7);
@@ -103,10 +113,7 @@ test("server 与 renderer 今日契约对齐：bucket key = todayKey(timeZone)",
   await mkdir(sessions);
   const now = () => new Date("2026-07-18T00:15:00.000+08:00"); // = 2026-07-17T16:15Z
   // 用与 now 同一时刻的 record 时间戳
-  await writeFile(
-    join(sessions, "s.jsonl"),
-    `${codexEvent(10, "2026-07-17T16:15:00.000Z")}\n`,
-  );
+  await writeFile(join(sessions, "s.jsonl"), `${codexEvent(10, "2026-07-17T16:15:00.000Z")}\n`);
   const reader = new CodexSessionLogReader({
     logRoot: sessions,
     cachePath: cache,
