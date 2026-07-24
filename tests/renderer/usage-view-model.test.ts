@@ -11,6 +11,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  formatCodexBrand,
   pickClientSnapshot,
   toClientKind,
   toClientUsageViewModel,
@@ -42,6 +43,13 @@ import {
 } from "../../renderer/src/domain/fixtures/snapshots.ts";
 
 const NOW = FIXED_NOW; // 2026-07-18T08:01:00Z，todayKey 命中 "2026-07-18"
+
+test("formatCodexBrand: 使用真实套餐，未知时不猜 Plus", () => {
+  assert.equal(formatCodexBrand("pro"), "CODEX · PRO");
+  assert.equal(formatCodexBrand(" plus "), "CODEX · PLUS");
+  assert.equal(formatCodexBrand(null), "CODEX");
+  assert.equal(formatCodexBrand(""), "CODEX");
+});
 
 // ---------- toClientKind ----------
 

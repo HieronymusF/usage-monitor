@@ -5,6 +5,7 @@ import type {
   RawRateLimitWindow,
   ThreadTokenUsage,
   TokenUsage,
+  UsageSource,
   UsageWarning,
 } from "./types.js";
 
@@ -35,9 +36,10 @@ function normalizeWindow(
   raw: RawRateLimitWindow,
   index: number,
   warnings: UsageWarning[],
+  source: UsageSource,
 ): QuotaWindow {
   const minutes = numberOrNull(raw.windowDurationMins ?? raw.window_minutes);
-  const originalPercent = numberOrNull(raw.usedPercent);
+  const originalPercent = numberOrNull(raw.usedPercent ?? raw.used_percent);
   let usedPercent = originalPercent;
   if (originalPercent !== null && (originalPercent < 0 || originalPercent > 100)) {
     usedPercent = Math.min(100, Math.max(0, originalPercent));
@@ -58,12 +60,15 @@ function normalizeWindow(
     usedPercent,
     remainingPercent,
     resetsAt,
-    source: "app_server",
+    source,
     quality: usedPercent === null ? "unavailable" : "derived",
   };
 }
 
-export function normalizeRateLimits(raw: RawRateLimitsResponse): {
+export function normalizeRateLimits(
+  raw: RawRateLimitsResponse,
+  source: UsageSource = "app_server",
+): {
   limits: QuotaWindow[];
   planType: string | null;
   warnings: UsageWarning[];
@@ -84,7 +89,9 @@ export function normalizeRateLimits(raw: RawRateLimitsResponse): {
     const bucketId = stringOrNull(bucket.limitId ?? bucket.limit_id) ?? mapId;
     planType ??= stringOrNull(bucket.planType ?? bucket.plan_type);
     [bucket.primary, bucket.secondary].forEach((window, index) => {
-      if (window && typeof window === "object") limits.push(normalizeWindow(bucketId, window, index, warnings));
+      if (window && typeof window === "object") {
+        limits.push(normalizeWindow(bucketId, window, index, warnings, source));
+      }
     });
   }
   if (limits.length === 0) {

@@ -25,6 +25,39 @@
     "skills",
     "README.md"
   ],
+  "build": {
+    "appId": "com.hieronymusf.usage-monitor",
+    "productName": "Usage Monitor",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "dist/**/*",
+      "package.json",
+      "!dist/**/.gitkeep"
+    ],
+    "extraResources": [
+      {
+        "from": "electron/probe-daemon.ps1",
+        "to": "probe-daemon.ps1"
+      },
+      {
+        "from": "resources/usage-monitor.ico",
+        "to": "usage-monitor.ico"
+      }
+    ],
+    "win": {
+      "icon": "resources/usage-monitor.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "usage-monitor-portable-${version}.exe"
+    }
+  },
   "scripts": {
     "build": "npm run build:server && npm run build:desktop",
     "build:server": "node ./node_modules/typescript/bin/tsc -p tsconfig.build.json",
@@ -50,7 +83,8 @@
     "capture": "node scripts/capture.mjs",
     "capture:all": "node scripts/capture-all.mjs",
     "capture:diff": "node scripts/diff.mjs",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run build && npm run validate:plugin && npm run test:server"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run build && npm run validate:plugin && npm run test:server",
+    "dist": "npm run build && electron-builder --win portable"
   },
   "dependencies": {
     "@fluentui/react-icons": "^2.0.333",
@@ -79,6 +113,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "eslint": "^10.7.0",
     "jsdom": "^29.1.1",

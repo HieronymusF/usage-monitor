@@ -28,16 +28,14 @@ const codexEvent = (totalTokens, timestamp) =>
     },
   });
 
-const zcodeAssistant = (id, input, output, timestamp) =>
+const zcodeModelIo = (id, input, output, timestamp) =>
   JSON.stringify({
-    type: "assistant",
-    timestamp,
-    message: {
-      id,
-      model: "m",
-      role: "assistant",
-      usage: { input_tokens: input, output_tokens: output },
-    },
+    type: "model_io",
+    requestId: id,
+    startedAt: timestamp,
+    completedAt: timestamp,
+    model: { modelId: "GLM-5.2", providerId: "builtin:bigmodel" },
+    response: { usage: { inputTokens: input, outputTokens: output, totalTokens: input + output } },
   });
 
 test("Codex bucket key 在 UTC+8 凌晨分到本地当日（不是 UTC 昨天）", async () => {
@@ -69,7 +67,7 @@ test("ZCode bucket key 在 UTC+8 凌晨分到本地当日（不是 UTC 昨天）
   // 同一时刻，ZCode 消息也应分到本地当日
   await writeFile(
     join(sessions, "s.jsonl"),
-    `${zcodeAssistant("a", 100, 10, "2026-07-17T16:15:00.000Z")}\n`,
+    `${zcodeModelIo("a", 100, 10, "2026-07-17T16:15:00.000Z")}\n`,
   );
   // 注入 now：与 Codex 用例同理，cutoff 相对 now 计算（见上注）。
   const now = () => new Date("2026-07-17T16:15:00.000Z");

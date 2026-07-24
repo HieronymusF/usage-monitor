@@ -37,6 +37,20 @@ test("unknown buckets survive and invalid percentages are clamped", () => {
   assert.equal(result.warnings.filter((warning) => warning.code === "INVALID_PERCENT").length, 2);
 });
 
+test("persisted snake_case rate limits preserve source and percentage", () => {
+  const result = normalizeRateLimits({
+    rateLimits: {
+      limit_id: "codex",
+      plan_type: "pro",
+      primary: { used_percent: 5, window_minutes: 10080, resets_at: 1785339360 },
+    },
+  }, "local_session");
+  assert.equal(result.planType, "pro");
+  assert.equal(result.limits[0].usedPercent, 5);
+  assert.equal(result.limits[0].remainingPercent, 95);
+  assert.equal(result.limits[0].source, "local_session");
+});
+
 test("account usage supported and unknown payload forms", () => {
   const account = normalizeAccountUsage({
     usage: { inputTokens: 10, cachedInputTokens: 2, outputTokens: 5, reasoningOutputTokens: 1, totalTokens: 16, lifetimeTotal: 99 },

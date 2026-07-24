@@ -4,6 +4,7 @@ import type {
   DesktopContext,
   MultiClientSnapshot,
   PreferenceKey,
+  PreferenceValue,
   Settings,
   SystemTheme,
 } from "../shared/desktop.js";
@@ -51,7 +52,7 @@ export function broadcastUsage(snapshot: MultiClientSnapshot): void {
  */
 export interface DesktopIpcCallbacks {
   getPreferences(): Settings;
-  onSetPreference(key: PreferenceKey, value: string): void;
+  onSetPreference(key: PreferenceKey, value: PreferenceValue): void;
 }
 
 export function registerDesktopIpc(
@@ -141,7 +142,7 @@ export function registerDesktopIpc(
     windowManager.moveOrbWindow(x, y);
   });
 
-  // D-3 切片 3（P1-3 修复）：Orb 拖动结束 → 吸附边缘。单向命令。校验 sender=orb。
+  // Orb 拖动结束 → 保持松手位置并写盘。单向命令。校验 sender=orb。
   ipcMain.on(desktopChannels.dragOrbEnd, (event) => {
     const senderSurface = windowManager.getSurfaceForWebContents(event.sender.id);
     if (senderSurface !== "orb") {
@@ -150,7 +151,7 @@ export function registerDesktopIpc(
       );
       return;
     }
-    windowManager.snapOrbWindowToEdge();
+    windowManager.finishOrbWindowDrag();
   });
 
   // D-3 切片 3（P1-3 修复）：取 Orb bounds（拖动起点）。invoke，校验 sender=orb，只返 Orb。

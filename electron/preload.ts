@@ -5,6 +5,7 @@ import type {
   MonitorDesktopApi,
   MultiClientSnapshot,
   PreferenceKey,
+  PreferenceValue,
   Settings,
   SurfaceKind,
   SystemTheme,
@@ -53,12 +54,12 @@ const monitorApi: MonitorDesktopApi = {
   suspendHover: () => {
     ipcRenderer.send(desktopChannels.suspendHover);
   },
-  resumeHover: () => {
-    ipcRenderer.send(desktopChannels.resumeHover);
+  resumeHover: (dragged: boolean) => {
+    ipcRenderer.send(desktopChannels.resumeHover, dragged);
   },
   // Milestone E-F/G：用户偏好（主进程为单一真相源）。
   getPreferences: () => ipcRenderer.invoke(desktopChannels.getPreferences) as Promise<Settings>,
-  setPreference: (key: PreferenceKey, value: string) => {
+  setPreference: (key: PreferenceKey, value: PreferenceValue) => {
     ipcRenderer.send(desktopChannels.setPreference, key, value);
   },
   onPreferenceChanged: (listener) => {

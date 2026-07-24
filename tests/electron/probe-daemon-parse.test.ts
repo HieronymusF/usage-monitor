@@ -51,7 +51,7 @@ test("parseProcessName: 非对象 JSON → error", () => {
 // ─── parseGeometry ───
 
 const VALID_GEOM =
-  '{"cursorX":100,"cursorY":200,"windowLeft":10,"windowTop":20,"windowWidth":82,"windowHeight":136,"dpi":96}';
+  '{"cursorX":100,"cursorY":200,"windowLeft":10,"windowTop":20,"windowWidth":82,"windowHeight":136,"dpi":96,"primaryButtonPressed":true}';
 
 test("parseGeometry: 正常几何", () => {
   const g = parseGeometry(VALID_GEOM);
@@ -61,6 +61,7 @@ test("parseGeometry: 正常几何", () => {
   assert.equal(g?.windowLeft, 10);
   assert.equal(g?.windowTop, 20);
   assert.equal(g?.dpi, 96);
+  assert.equal(g?.primaryButtonPressed, true);
 });
 
 test("parseGeometry: error 字段 → null（降级）", () => {
@@ -80,6 +81,11 @@ test("parseGeometry: 字段缺失 → null", () => {
     null,
     "缺 dpi",
   );
+  assert.equal(
+    parseGeometry('{"cursorX":1,"cursorY":2,"windowLeft":3,"windowTop":4,"dpi":96}'),
+    null,
+    "缺 primaryButtonPressed",
+  );
 });
 
 test("parseGeometry: 字段类型错 → null", () => {
@@ -92,6 +98,13 @@ test("parseGeometry: 字段类型错 → null", () => {
     parseGeometry('{"cursorX":1,"cursorY":2,"windowLeft":3,"windowTop":4,"dpi":"96"}'),
     null,
     "dpi 非数字",
+  );
+  assert.equal(
+    parseGeometry(
+      '{"cursorX":1,"cursorY":2,"windowLeft":3,"windowTop":4,"dpi":96,"primaryButtonPressed":1}',
+    ),
+    null,
+    "primaryButtonPressed 非布尔值",
   );
 });
 

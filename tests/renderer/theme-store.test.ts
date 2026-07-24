@@ -9,6 +9,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { DEFAULT_SETTINGS } from "../../shared/settings.ts";
 import {
   resolveTheme,
   type ResolvedTheme,
@@ -129,6 +130,8 @@ test("store: hydrateFromPreferences 应用主进程推送的 themePreference", a
     displayPreference: "auto",
     activeClient: "codex",
     language: "zh-CN",
+    autoLaunch: false,
+    windowPlacements: DEFAULT_SETTINGS.windowPlacements,
   });
   useThemeStore.getState().applyTheme(sink);
 
@@ -153,6 +156,8 @@ test("store: hydrateFromPreferences 幂等（值一致无副作用）", async ()
     displayPreference: "auto",
     activeClient: "codex",
     language: "zh-CN",
+    autoLaunch: false,
+    windowPlacements: DEFAULT_SETTINGS.windowPlacements,
   });
 
   assert.equal(applyCount, 0, "值一致时 hydrate 不触发 applyTheme");
@@ -170,6 +175,8 @@ test("store: hydrateFromPreferences auto 模式跟随 systemTheme", async () => 
     displayPreference: "auto",
     activeClient: "codex",
     language: "zh-CN",
+    autoLaunch: false,
+    windowPlacements: DEFAULT_SETTINGS.windowPlacements,
   });
 
   assert.equal(useThemeStore.getState().resolved, "dark", "auto + systemDark → dark");

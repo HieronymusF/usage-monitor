@@ -21,6 +21,7 @@
  * 见 DESIGN_SYSTEM.md §13 白名单，声明为命名常量不进 spacing 表。
  */
 
+import React from "react";
 import { useTranslation } from "react-i18next";
 import type { UsageViewModel } from "../../domain/types";
 import { GlassSurface } from "../foundations/GlassSurface";
@@ -118,7 +119,12 @@ export function CodexCardInner({ vm, onClose }: CodexCardInnerProps): React.Reac
     >
       <Stack gap="1_5" style={{ height: "100%" }}>
         <div style={{ height: `${g.headerHeight}px`, flexShrink: 0 }}>
-          <CardHeader clientKind={client.kind} onSwitchClient={() => undefined} onClose={onClose} />
+          <CardHeader
+            clientKind={client.kind}
+            planType={client.planType}
+            onSwitchClient={() => undefined}
+            onClose={onClose}
+          />
         </div>
 
         <Grid columns={g.mainGridColumns} align="center" style={{ height: `${g.mainHeight}px` }}>

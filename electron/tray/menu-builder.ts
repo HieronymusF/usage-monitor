@@ -28,6 +28,7 @@ interface TrayStrings {
   theme: string;
   language: string;
   refresh: string;
+  autoLaunch: string;
   quit: string;
   /** 展示模式子项标签（auto/card/bar/orb → 本地化）。 */
   displayAuto: string;
@@ -44,6 +45,7 @@ const STRINGS: Record<Language, TrayStrings> = {
     theme: "主题",
     language: "语言",
     refresh: "刷新",
+    autoLaunch: "开机启动",
     quit: "退出",
     displayAuto: "自动",
     displayCard: "卡片",
@@ -57,6 +59,7 @@ const STRINGS: Record<Language, TrayStrings> = {
     theme: "Theme",
     language: "Language",
     refresh: "Refresh",
+    autoLaunch: "Launch at startup",
     quit: "Quit",
     displayAuto: "Auto",
     displayCard: "Card",
@@ -99,6 +102,8 @@ export interface TrayMenuCallbacks {
   setLanguage(lang: Language): void;
   /** 刷新用量数据。 */
   refresh(): void;
+  /** 启用/关闭 Windows 开机自启。 */
+  setAutoLaunch(enabled: boolean): void;
   /** 退出应用。 */
   quit(): void;
 }
@@ -156,6 +161,12 @@ export function buildTrayMenuTemplate(
     { label: s.language, submenu: languageItems },
     { type: "separator" },
     { label: s.refresh, click: () => callbacks.refresh() },
+    {
+      label: s.autoLaunch,
+      type: "checkbox",
+      checked: settings.autoLaunch,
+      click: () => callbacks.setAutoLaunch(!settings.autoLaunch),
+    },
     { label: s.quit, click: () => callbacks.quit() },
   ];
 }

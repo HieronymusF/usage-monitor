@@ -91,7 +91,7 @@ import { Stack } from "@/components/layout";
 | `displayS`  | 34 / 42   | Bold     | 今日 Token（SidePanel）                      |
 | `metricL`   | 28 / 32   | SemiBold | Edge Capsule 主数字（未来）                  |
 | `metricM`   | 22 / 28   | SemiBold | Token 数字、次级指标（TokenTray、SidePanel） |
-| `labelL`    | 16 / 24   | SemiBold | 品牌 "CODEX · PLUS"                          |
+| `labelL`    | 16 / 24   | SemiBold | 品牌 "CODEX · {PLAN}"                        |
 | `body`      | 14 / 20   | Regular  | 正文、loading 提示                           |
 | `caption`   | 13 / 19   | Regular  | 来源、更新时间、辅助标签、倒计时             |
 | `bar`       | 14 / 20   | Regular  | Indicator Bar 全部文字                       |
@@ -203,7 +203,7 @@ import { Stack } from "@/components/layout";
 - ❌ `width: 340 + 20 + 1 + 20 + 179 = 560px`（任一改动都炸）
 - ✅ `Grid columns="340px 20px 1px 20px 1fr"`（`1fr` 自动吃剩余空间）
 
-长文本（token 数字、品牌名）必须 `whiteSpace: "nowrap"` 或 `text-overflow: ellipsis`，避免撑破容器。中英文差异：品牌格式 `CODEX · PLUS` / `ZCODE · LOCAL` 固定，不手动插空格。
+长文本（token 数字、品牌名）必须 `whiteSpace: "nowrap"` 或 `text-overflow: ellipsis`，避免撑破容器。中英文差异：品牌格式 `CODEX · {PLAN}` / `ZCODE · LOCAL` 固定，不手动插空格；Codex 套餐来自 `planType`。
 
 ## 11. Do / Don't
 
@@ -322,7 +322,7 @@ import { Stack } from "@/components/layout";
 
 - 是否用 `Grid columns="..."` 而非裸像素和
 - 长文本是否 `nowrap` 或 `ellipsis`
-- 中英文品牌格式是否固定（`CODEX · PLUS`）
+- 品牌套餐是否来自 `planType`（如 `CODEX · PRO`）；未知时是否仅显示 `CODEX`
 
 ### Glass / Ring
 

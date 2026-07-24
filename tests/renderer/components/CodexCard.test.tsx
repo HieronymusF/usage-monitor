@@ -35,11 +35,15 @@ import assert from "node:assert/strict";
 
 import "../../../renderer/src/i18n";
 import i18n from "i18next";
+import { CodexCardInner } from "../../../renderer/src/components/card/CodexCard";
 import { FiveHourHero } from "../../../renderer/src/components/card/quota/FiveHourHero";
 import { WeeklyHeroRing } from "../../../renderer/src/components/card/quota/WeeklyHeroRing";
 import { UnavailableHero } from "../../../renderer/src/components/card/quota/UnavailableHero";
 import { SidePanel } from "../../../renderer/src/components/card/quota/SidePanel";
-import { toClientUsageViewModel } from "../../../renderer/src/domain/usage-view-model";
+import {
+  toClientUsageViewModel,
+  toUsageViewModel,
+} from "../../../renderer/src/domain/usage-view-model";
 import {
   codexDual,
   codexFiveOnly,
@@ -54,6 +58,21 @@ const NOW = () => new Date("2026-07-18T08:01:00.000Z");
 function clientOf(snap: typeof codexDual) {
   return toClientUsageViewModel(snap.clients.codex!, NOW);
 }
+
+test("CodexCard: CardHeader 使用快照中的 Pro 套餐", () => {
+  i18n.changeLanguage("zh-CN");
+  const snapshot: typeof codexDual = {
+    ...codexDual,
+    clients: {
+      ...codexDual.clients,
+      codex: { ...codexDual.clients.codex!, planType: "pro" },
+    },
+  };
+  const vm = toUsageViewModel({ snapshot, error: null, activeClientId: "codex", now: NOW });
+  render(<CodexCardInner vm={vm} onClose={() => undefined} />);
+  assert.ok(screen.getAllByText("CODEX · PRO").length > 0);
+  assert.equal(screen.queryByText("CODEX · PLUS"), null);
+});
 
 // ---------- FiveHourHero（Dual + FiveOnly 左侧）----------
 

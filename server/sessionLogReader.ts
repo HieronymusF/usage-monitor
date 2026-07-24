@@ -26,8 +26,8 @@ function fileState(offset: number, cursor: number | undefined): FileState {
  *    whose `dedupeKey` carries a per-file monotonic value; the base class still
  *    de-dupes identical consecutive keys, and callers that need delta math
  *    embed it in the record values directly (see CodexSessionLogReader).
- *  - Per-call usage (ZCode `message.usage`): subclass sets `dedupeKey` to a
- *    stable per-API-call id (e.g. `message.id`); the base class accumulates the
+ *  - Per-call usage (ZCode `response.usage`): subclass sets `dedupeKey` to a
+ *    stable per-API-call id (e.g. `requestId`); the base class accumulates the
  *    record's input/output verbatim, skipping ids already seen in this pass.
  *
  * Only numeric token fields are read. Conversation content, tool inputs and any
@@ -151,7 +151,7 @@ export abstract class SessionLogReader {
     }
   }
 
-  private async listJsonl(root: string): Promise<string[]> {
+  protected async listJsonl(root: string): Promise<string[]> {
     const result: string[] = [];
     async function walk(dir: string): Promise<void> {
       let entries;
@@ -189,7 +189,9 @@ export abstract class SessionLogReader {
     const stream = createReadStream(file, { encoding: "utf8", start: offset });
     const lines = createInterface({ input: stream, crlfDelay: Infinity });
     for await (const line of lines) {
-      if (!line.includes("token")) continue;
+      // Codex uses snake_case `*_tokens`; current ZCode logs use camelCase
+      // `*Tokens`. Keep the cheap pre-filter without making it case-sensitive.
+      if (!/token/i.test(line)) continue;
       let record: TokenRecord | null;
       try {
         record = this.parseRecord(line);

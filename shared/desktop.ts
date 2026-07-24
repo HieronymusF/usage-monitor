@@ -63,8 +63,8 @@ export type DesktopPlatform =
   | "netbsd";
 
 // Milestone E-F/G：偏好类型供 MonitorDesktopApi 使用；re-export 让 renderer/preload 一处 import。
-import type { PreferenceKey, Settings } from "./settings.js";
-export type { PreferenceKey, Settings };
+import type { PreferenceKey, PreferenceValue, Settings } from "./settings.js";
+export type { PreferenceKey, PreferenceValue, Settings };
 export type { DisplayPreference, ThemePreference, ClientKind, Language } from "./settings.js";
 
 export interface DesktopContext {
@@ -106,8 +106,7 @@ export interface MonitorDesktopApi {
    */
   moveOrb(x: number, y: number): void;
   /**
-   * D-3 切片 3：拖动结束，主进程把 Orb 吸附到所在显示器最近的左/右边缘。单向命令。
-   * P1-3：只操作 Orb 窗口。
+   * 拖动结束，主进程把 Orb 完整保留在松手位置并保存。单向命令，只操作 Orb 窗口。
    */
   dragOrbEnd(): void;
   /**
@@ -116,14 +115,13 @@ export interface MonitorDesktopApi {
    */
   getOrbBounds(): Promise<{ x: number; y: number; width: number; height: number } | null>;
   /**
-   * P1-1：暂停 hover 展开（拖动 pointerdown 时调）。单向命令。清 hover dwell，
-   * resume 后必须等鼠标真正离开 Orb 一次才能重新展开。
+   * 暂停 Orb hover 控制（pointerdown 时调），避免探针与拖动同时改窗口位置。
    */
   suspendHover(): void;
   /**
-   * P1-1：恢复 hover（拖动 pointerup 时调）。单向命令。不立即展开——等首次 not-over。
+   * 恢复 hover（pointerup 时调）。dragged=true 表示进入可停任意位置的自由悬浮态。
    */
-  resumeHover(): void;
+  resumeHover(dragged: boolean): void;
   /**
    * Milestone E-F/G：取全部用户偏好（主进程为单一真相源）。启动时 hydrate 用。
    */
@@ -132,7 +130,7 @@ export interface MonitorDesktopApi {
    * Milestone E-F/G：写单个偏好字段。单向命令——主进程更新后会广播 preferenceChanged，
    * renderer 监听到再应用（不在此同步返回，避免 renderer 自行维护真相源）。
    */
-  setPreference(key: PreferenceKey, value: string): void;
+  setPreference(key: PreferenceKey, value: PreferenceValue): void;
   /**
    * Milestone E-F/G：监听偏好变化（主进程推送）。任意偏好字段变更都触发，listener 收到完整 Settings。
    */

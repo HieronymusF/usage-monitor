@@ -93,6 +93,7 @@ export interface UsageSnapshot {
 
 export interface RawRateLimitWindow {
   usedPercent?: unknown;
+  used_percent?: unknown;
   windowDurationMins?: unknown;
   window_minutes?: unknown;
   resetsAt?: unknown;

@@ -110,6 +110,20 @@ test("Capsule Codex Dual: 主额度区 = CODEX·PLUS + 每周额度 + 64%", () =
   assert.ok(screen.getAllByText("64%").length > 0, "主百分比 64%（weekly 优先）");
 });
 
+test("Capsule Codex Pro: 品牌使用快照套餐，不沿用固定 Plus", () => {
+  i18n.changeLanguage("zh-CN");
+  const proSnapshot: typeof codexDual = {
+    ...codexDual,
+    clients: {
+      ...codexDual.clients,
+      codex: { ...codexDual.clients.codex!, planType: "pro" },
+    },
+  };
+  renderCapsule(proSnapshot);
+  assert.ok(screen.getAllByText("CODEX · PRO").length > 0);
+  assert.equal(screen.queryByText("CODEX · PLUS"), null);
+});
+
 test("v30 refresh-error: 短提示替换更新时间，保留完整 tooltip 和旧数据", () => {
   i18n.changeLanguage("zh-CN");
   // 注入 error 让 dataState=refresh-error（snapshot 保留 → client 非空 → 正常 body + 提示）

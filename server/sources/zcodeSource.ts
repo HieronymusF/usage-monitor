@@ -5,11 +5,12 @@ import type { ClientSnapshot, UsageWarning } from "../types.js";
 import type { ClientUsageSource } from "./types.js";
 
 /**
- * ZCode client: no app-server and no official quota interface exist, so this
- * source reports ONLY local-estimate token statistics (today / lifetime / per-day
- * / per-model). It never invents quota windows, reset times or remaining
- * percentages. `available` reflects whether a ZCode session log directory is
- * present on this machine. No settings or credential files are opened.
+ * ZCode client: the desktop application's embedded GLM app-server writes local
+ * model-I/O logs but exposes no official quota interface consumed here. This
+ * source reports ONLY local-estimate token statistics (today / lifetime /
+ * per-day / per-model). It never invents quota windows, reset times or remaining
+ * percentages. `available` reflects whether the model-I/O log directory is
+ * present on this machine. Settings and request/response content are not read.
  */
 export class ZcodeSource implements ClientUsageSource {
   readonly clientId = "zcode";

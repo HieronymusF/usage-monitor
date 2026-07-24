@@ -2,7 +2,7 @@
  * CardHeader — 标题栏（visual-spec §3 + §4.4）。
  *
  * 结构：
- * - 左：品牌 "CODEX · PLUS"（labelL 16/24 SemiBold）+ 客户端切换按钮
+ * - 左：品牌 "CODEX · {PLAN}"（labelL 16/24 SemiBold）+ 客户端切换按钮
  * - 右：3 个 36×36 IconButton（主题 / 展示模式 / 关闭），间距 8px
  *
  * 红线（visual-spec §3 L111）：标题栏不得出现额度状态灯、连接状态灯、`中`字、
@@ -16,18 +16,21 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, Moon, Sun, X } from "lucide-react";
 import type { ClientKind } from "../../domain/types";
+import { formatCodexBrand } from "../../domain/usage-view-model";
 import { IconButton } from "../foundations/IconButton";
 import { useThemeStore } from "../../stores/themeStore";
 import { useUsageStore } from "../../stores/usageStore";
 
 export interface CardHeaderProps {
   clientKind: ClientKind;
+  planType?: string | null;
   onSwitchClient: (kind: ClientKind) => void;
   onClose: () => void;
 }
 
 export function CardHeader({
   clientKind,
+  planType = null,
   onSwitchClient,
   onClose,
 }: CardHeaderProps): React.ReactElement {
@@ -37,7 +40,7 @@ export function CardHeader({
   const setActiveClient = useUsageStore((s) => s.setActiveClient);
   const [clientMenuOpen, setClientMenuOpen] = useState(false);
 
-  const brand = clientKind === "codex" ? t("brand.codex") : t("brand.zcode");
+  const brand = clientKind === "codex" ? formatCodexBrand(planType) : t("brand.zcode");
 
   const toggleTheme = (): void => {
     setThemePreference(resolvedTheme === "dark" ? "light" : "dark");

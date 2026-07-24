@@ -13,7 +13,7 @@ import React from "react";
  *
  * 几何（W=720 H=180，v21-v25 锁定）：
  *   ┌───────────────────────────────╮ ◯ ╮
- *   │ CODEX · PLUS                  │   │
+ *   │ CODEX · {PLAN}                │   │
  *   │ 每周额度  │ 重置  │ 今日 Token│42%│ ← 翼片弧形包裹圆环
  *   │ 64%  ◯  │ 6天后 │ 1.7M     │ ◯ │   ActionRail(58) + gap(24) + EdgeWing(92)
  *   │          │       │ 更新时间 │ ● │
@@ -32,6 +32,7 @@ import type {
 } from "../../domain/types";
 import { formatToken } from "../../domain/format-token";
 import { computeCountdownParts, pickRelevantParts } from "../../domain/format-countdown";
+import { formatCodexBrand } from "../../domain/usage-view-model";
 import { FluentIcon, type FluentIconName } from "../foundations/FluentIcon";
 import { GlassSurface } from "../foundations/GlassSurface";
 import { IconButton } from "../foundations/IconButton";
@@ -601,10 +602,10 @@ function CodexCapsuleBody({
 
   return (
     <>
-      {/* 段 1：主额度区（CODEX·PLUS + 每周额度 + 64%+ring）。
+      {/* 段 1：主额度区（CODEX·{PLAN} + 每周额度 + 64%+ring）。
           v26：删除重复「更新于」，只在今日 Token 下保留一次 */}
       <MainQuotaSection
-        brand={t("brand.codex")}
+        brand={formatCodexBrand(client.planType)}
         label={t("quota.weeklyAllowance")}
         value={mainText}
         ringProgress={ringProgress}
@@ -704,7 +705,7 @@ function DividerLine(): React.ReactElement {
 
 /**
  * v20 主额度区：4 行垂直结构（与重置/今日对齐）。
- * 行 1：CODEX · PLUS（顶部对齐其他模块标题位置）
+ * 行 1：CODEX · {PLAN}（顶部对齐其他模块标题位置）
  * 行 2：每周额度（标题）
  * 行 3：64% + 主 ring（主数据，水平容器，垂直居中）
  * 行 4：占位（v26 删除重复「更新于」，保留高度）
@@ -966,7 +967,7 @@ function metricLStyle(): React.CSSProperties {
   };
 }
 
-/** v25 产品与套餐（CODEX · PLUS）。
+/** v25 产品与套餐（CODEX · {PLAN}）。
  * 加 display:block + minHeight:20px 与 brandPlaceholderStyle 完全一致，确保基线对齐。 */
 function brandStyle(): React.CSSProperties {
   return {

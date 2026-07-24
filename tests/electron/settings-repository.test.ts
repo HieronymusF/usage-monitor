@@ -61,6 +61,11 @@ test("load: 完整合法文件 → 原样", async () => {
       displayPreference: "orb",
       activeClient: "zcode",
       language: "en",
+      autoLaunch: true,
+      windowPlacements: {
+        ...DEFAULT_SETTINGS.windowPlacements,
+        orb: { displayId: "2", offsetX: 6, offsetY: 240, snapEdge: "left" },
+      },
     };
     await writeFile(join(dir, "settings.json"), JSON.stringify(valid));
     const repo = new SettingsRepository({ dir });
@@ -69,6 +74,13 @@ test("load: 完整合法文件 → 原样", async () => {
     assert.equal(loaded.displayPreference, "orb");
     assert.equal(loaded.activeClient, "zcode");
     assert.equal(loaded.language, "en");
+    assert.equal(loaded.autoLaunch, true);
+    assert.deepEqual(loaded.windowPlacements.orb, {
+      displayId: "2",
+      offsetX: 6,
+      offsetY: 240,
+      snapEdge: "left",
+    });
   });
 });
 
@@ -133,6 +145,20 @@ test("update: 合法字段 → 更新内存 + 原子写盘", async () => {
   });
 });
 
+test("update: autoLaunch 布尔偏好 → 更新内存 + 写盘；字符串伪装被拒绝", async () => {
+  await withTempSettings(async (dir) => {
+    const repo = new SettingsRepository({ dir });
+    repo.load();
+    const updated = repo.update("autoLaunch", true);
+    assert.equal(updated.autoLaunch, true);
+    const unchanged = repo.update("autoLaunch", "true");
+    assert.equal(unchanged, updated, "非法字符串不产生新 Settings");
+    await repo.flush();
+    const onDisk = JSON.parse(await readFile(join(dir, "settings.json"), "utf8"));
+    assert.equal(onDisk.autoLaunch, true);
+  });
+});
+
 test("update: 非法 value → 忽略，返回当前值不变", async () => {
   await withTempSettings(async (dir) => {
     const repo = new SettingsRepository({ dir });
@@ -154,6 +180,55 @@ test("update: 非法 key → 忽略", async () => {
   });
 });
 
+test("updateWindowPlacement: 合法位置按 surface 更新并写盘，相同值不重复生成 Settings", async () => {
+  await withTempSettings(async (dir) => {
+    const repo = new SettingsRepository({ dir });
+    repo.load();
+    const placement = { displayId: "2", offsetX: 6, offsetY: 240, snapEdge: "left" as const };
+    const updated = repo.updateWindowPlacement("orb", placement);
+    assert.deepEqual(updated.windowPlacements.orb, placement);
+    assert.equal(
+      repo.getWindowPlacement("orb"),
+      updated.windowPlacements.orb,
+      "get 读取 repository 内同一规范化 placement",
+    );
+    const unchanged = repo.updateWindowPlacement("orb", { ...placement });
+    assert.equal(unchanged, updated, "相同位置短路，不产生新 Settings");
+    await repo.flush();
+    const onDisk = JSON.parse(await readFile(join(dir, "settings.json"), "utf8"));
+    assert.deepEqual(onDisk.windowPlacements.orb, placement);
+  });
+});
+
+test("updateWindowPlacement: 非法 surface/坐标/吸附边被拒绝，不污染其他位置", async () => {
+  await withTempSettings(async (dir) => {
+    const repo = new SettingsRepository({ dir });
+    repo.load();
+    const before = repo.get();
+    // @ts-expect-error 运行时防御：伪造 surface。
+    assert.equal(repo.updateWindowPlacement("unknown", {}), before);
+    assert.equal(
+      repo.updateWindowPlacement("card", {
+        displayId: "1",
+        offsetX: Number.NaN,
+        offsetY: 1,
+        snapEdge: null,
+      }),
+      before,
+    );
+    assert.equal(
+      repo.updateWindowPlacement("orb", {
+        displayId: "1",
+        offsetX: 6,
+        offsetY: 1,
+        snapEdge: "top",
+      }),
+      before,
+    );
+    assert.deepEqual(repo.get().windowPlacements, DEFAULT_SETTINGS.windowPlacements);
+  });
+});
+
 // ─── P1 修复：严格串行写盘（不得并发 rename / ENOENT）───
 
 test("update: 连续快速多次更新 → 串行写盘，最终磁盘是最新完整 Settings，无残留 tmp", async () => {
@@ -164,12 +239,38 @@ test("update: 连续快速多次更新 → 串行写盘，最终磁盘是最新�
     repo.update("displayPreference", "orb");
     repo.update("activeClient", "zcode");
     repo.update("language", "en");
+    repo.update("autoLaunch", true);
+    repo.updateWindowPlacement("card", {
+      displayId: "1",
+      offsetX: 100,
+      offsetY: 200,
+      snapEdge: null,
+    });
+    repo.updateWindowPlacement("orb", {
+      displayId: "2",
+      offsetX: 6,
+      offsetY: 240,
+      snapEdge: "left",
+    });
     await repo.flush();
     const onDisk = JSON.parse(await readFile(join(dir, "settings.json"), "utf8"));
     assert.equal(onDisk.themePreference, "dark");
     assert.equal(onDisk.displayPreference, "orb");
     assert.equal(onDisk.activeClient, "zcode");
     assert.equal(onDisk.language, "en");
+    assert.equal(onDisk.autoLaunch, true);
+    assert.deepEqual(onDisk.windowPlacements.card, {
+      displayId: "1",
+      offsetX: 100,
+      offsetY: 200,
+      snapEdge: null,
+    });
+    assert.deepEqual(onDisk.windowPlacements.orb, {
+      displayId: "2",
+      offsetX: 6,
+      offsetY: 240,
+      snapEdge: "left",
+    });
     // 无残留 tmp：每次写盘用唯一 .tmp.N，写完即删。逐个明确检查不存在。
     for (let i = 1; i <= 10; i++) {
       assert.equal(existsSync(join(dir, `settings.json.tmp.${i}`)), false, `tmp.${i} 不残留`);
