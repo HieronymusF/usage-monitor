@@ -101,6 +101,11 @@ export interface MonitorDesktopApi {
    */
   showSurface(kind: SurfaceKind): void;
   /**
+   * 请求主进程在当前指针位置打开 Auto / Card / Bar / Orb 原生菜单。
+   * 固定尺寸 Bar/Capsule 不在 renderer 内画下拉层，避免被窗口边界裁切。
+   */
+  openDisplayMenu(): void;
+  /**
    * D-3 切片 3：拖动中把 Orb 移到 (x, y)（DIP）。单向命令，renderer pointermove 节流调用。
    * P1-3：只操作 Orb 窗口（非"当前可见窗口"）。
    */

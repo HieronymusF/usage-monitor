@@ -50,13 +50,18 @@ test("GlassSurface: bar/orb/capsule/button 各自圆角正确", () => {
   assert.equal(screen.getByTestId("g").style.borderRadius, `${radius.button36}px`);
 });
 
-test("GlassSurface: card/capsule 无外阴影(用户反馈去掉),button 保留轻阴影", () => {
-  // 用户反馈:暗色背景下蓝色阴影太明显,card/capsule 去掉外阴影只留 border。
+test("GlassSurface: 主 surface 有 inset 双层边缘/环境光晕且无外部蓝影，button 保留轻阴影", () => {
+  // 主 surface 不用 var(--shadow-card)，但必须保留 inset 材质定义。
   const { rerender } = render(<GlassSurface surface="card" data-testid="g" />);
-  assert.equal(screen.getByTestId("g").style.boxShadow, "none");
+  assert.ok(screen.getByTestId("g").style.boxShadow.includes("inset 0 1px 0"));
+  assert.ok(screen.getByTestId("g").style.boxShadow.includes("inset 0 0 0 1px"));
+  assert.ok(screen.getByTestId("g").style.boxShadow.includes("inset 0 0 32px"));
+  assert.ok(!screen.getByTestId("g").style.boxShadow.includes("var(--shadow-card)"));
   rerender(<GlassSurface surface="capsule" data-testid="g" />);
-  assert.equal(screen.getByTestId("g").style.boxShadow, "none");
+  assert.ok(screen.getByTestId("g").style.boxShadow.includes("inset"));
+  assert.ok(!screen.getByTestId("g").style.boxShadow.includes("var(--shadow-card)"));
   rerender(<GlassSurface surface="button" data-testid="g" />);
+  assert.ok(screen.getByTestId("g").style.boxShadow.includes("inset"));
   assert.ok(screen.getByTestId("g").style.boxShadow.includes("var(--shadow-small)"));
 });
 

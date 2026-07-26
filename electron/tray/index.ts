@@ -13,6 +13,8 @@
 import { Tray, Menu, nativeImage } from "electron";
 import { buildTrayMenuTemplate, TRAY_STRINGS, type TrayMenuCallbacks } from "./menu-builder.js";
 import type { SettingsRepository } from "../settings/repository.js";
+import type { MultiClientSnapshot } from "../../server/types.js";
+import { renderUsageTrayIconPng, selectTrayRemainingPercent } from "./usage-icon.js";
 
 export interface CreateTrayOptions {
   repo: SettingsRepository;
@@ -30,17 +32,29 @@ export interface CreateTrayOptions {
 export function createTray(opts: CreateTrayOptions): {
   destroy(): void;
   rebuild(): void;
+  updateUsage(snapshot: MultiClientSnapshot): void;
 } {
   const { repo, callbacks } = opts;
   const appName = opts.appName ?? "Codex Usage Monitor";
-  const icon = loadTrayIcon(opts.iconPath);
-  const tray = new Tray(icon);
+  const fallbackIcon = loadTrayIcon(opts.iconPath);
+  const tray = new Tray(createUsageIcon(null, fallbackIcon));
+  let latestSnapshot: MultiClientSnapshot | null = null;
   tray.setToolTip(appName);
+
+  const updateIcon = (): void => {
+    if (latestSnapshot === null) return;
+    const remainingPercent = selectTrayRemainingPercent(latestSnapshot, repo.get().activeClient);
+    tray.setImage(createUsageIcon(remainingPercent, fallbackIcon));
+    tray.setToolTip(
+      remainingPercent === null ? appName : `${appName} · ${Math.round(remainingPercent)}%`,
+    );
+  };
 
   const rebuild = (): void => {
     const settings = repo.get();
     const template = buildTrayMenuTemplate(settings, callbacks);
     tray.setContextMenu(Menu.buildFromTemplate(template));
+    updateIcon();
   };
 
   // 首次构建。
@@ -48,10 +62,22 @@ export function createTray(opts: CreateTrayOptions): {
 
   return {
     rebuild,
+    updateUsage(snapshot) {
+      latestSnapshot = snapshot;
+      updateIcon();
+    },
     destroy() {
       tray.destroy();
     },
   };
+}
+
+function createUsageIcon(
+  remainingPercent: number | null,
+  fallback: Electron.NativeImage,
+): Electron.NativeImage {
+  const icon = nativeImage.createFromBuffer(renderUsageTrayIconPng(remainingPercent, 32));
+  return icon.isEmpty() ? fallback : icon;
 }
 
 /**

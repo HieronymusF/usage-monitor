@@ -1,4 +1,4 @@
-import { app, ipcMain, nativeTheme } from "electron";
+import { app, ipcMain, Menu, nativeTheme } from "electron";
 import { join } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -16,7 +16,7 @@ import { ProbeDaemon } from "./windows/probe-daemon.js";
 import { SettingsRepository } from "./settings/repository.js";
 import { createPreferenceCommitter, performTrayRefresh } from "./preferences.js";
 import { createTray } from "./tray/index.js";
-import type { TrayMenuCallbacks } from "./tray/menu-builder.js";
+import { buildDisplayModeMenuTemplate, type TrayMenuCallbacks } from "./tray/menu-builder.js";
 import type { SurfaceKind } from "../shared/desktop.js";
 import type {
   ClientKind,
@@ -65,7 +65,7 @@ let offSurfaceChange: (() => void) | undefined;
 /** D-3 性能修复：共享长驻 PS 守护进程，foreground + hover 复用，避免每探针 spawn。 */
 let probeDaemon: ProbeDaemon | undefined;
 /** Milestone E-F：托盘实例（destroy 用）。 */
-let trayHandle: { destroy(): void; rebuild(): void } | undefined;
+let trayHandle: ReturnType<typeof createTray> | undefined;
 let shuttingDown = false;
 
 /**
@@ -259,13 +259,29 @@ function makeTrayCallbacks(): TrayMenuCallbacks {
       // 不在回调里手写串联——测试和 main.ts 调同一份逻辑，漏广播会被测出。
       void performTrayRefresh(
         () => bridgeClient.refreshUsage(),
-        (snapshot) => broadcastUsage(snapshot),
+        (snapshot) => {
+          trayHandle?.updateUsage(snapshot);
+          broadcastUsage(snapshot);
+        },
       );
     },
     quit: () => {
       app.quit();
     },
   };
+}
+
+/** 固定尺寸 Bar/Capsule 共用原生四态菜单，选择仍经 commitPreference 单一入口。 */
+function openDisplayModeMenu(surface: SurfaceKind): void {
+  const repo = settingsRepo;
+  const ownerWindow = windowManager.getBrowserWindow(surface);
+  if (!repo || !ownerWindow || ownerWindow.isDestroyed()) return;
+  const menu = Menu.buildFromTemplate(
+    buildDisplayModeMenuTemplate(repo.get(), (pref) => {
+      commitPreference?.("displayPreference", pref);
+    }),
+  );
+  menu.popup({ window: ownerWindow });
 }
 
 /**
@@ -429,8 +445,19 @@ if (!hasSingleInstanceLock) {
       });
       // registerDesktopIpc 经 callbacks 走 commitPreference/getPreferences 统一入口（问题 2）。
       unregisterIpc = registerDesktopIpc(windowManager, bridgeClient, {
-        getPreferences: () => repo.get(),
+        getPreferences: () => {
+          const settings = repo.get();
+          // capture 主题必须覆盖持久化偏好，否则 ThemeProvider hydrate 后会把
+          // CAPTURE_THEME=dark 重新改回用户保存的 light/auto，导致主题矩阵截图失真。
+          if (process.env.CAPTURE_PREVIEW !== "1") return settings;
+          return {
+            ...settings,
+            themePreference: process.env.CAPTURE_THEME === "dark" ? "dark" : "light",
+          };
+        },
         onSetPreference: (key, value) => commitPreference?.(key, value),
+        onUsageSnapshot: (snapshot) => trayHandle?.updateUsage(snapshot),
+        onOpenDisplayMenu: openDisplayModeMenu,
       });
       // P1-1：hover suspend/resume IPC（拖动期间暂停 hover）。sender 必须是 orb。
       registerHoverSuspendIpc();

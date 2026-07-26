@@ -41,6 +41,9 @@ const monitorApi: MonitorDesktopApi = {
   showSurface: (kind: SurfaceKind) => {
     ipcRenderer.send(desktopChannels.showSurface, kind);
   },
+  openDisplayMenu: () => {
+    ipcRenderer.send(desktopChannels.openDisplayMenu);
+  },
   moveOrb: (x: number, y: number) => {
     ipcRenderer.send(desktopChannels.moveOrb, x, y);
   },

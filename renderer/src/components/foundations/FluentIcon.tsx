@@ -1,13 +1,24 @@
 /** Fluent System Icons SVG 封装（visual-spec §图标语义与形状）。 */
 import React from "react";
+import { AppsRegular } from "@fluentui/react-icons/headless/svg/apps";
 import { ArrowClockwiseRegular } from "@fluentui/react-icons/headless/svg/arrow-clockwise";
+import { ChevronDownRegular } from "@fluentui/react-icons/headless/svg/chevron-down";
 import { DarkThemeRegular } from "@fluentui/react-icons/headless/svg/dark-theme";
+import { DismissRegular } from "@fluentui/react-icons/headless/svg/dismiss";
 import { PersonSwapRegular } from "@fluentui/react-icons/headless/svg/person-swap";
 import { WeatherMoonRegular } from "@fluentui/react-icons/headless/svg/weather-moon";
 import { WeatherSunnyRegular } from "@fluentui/react-icons/headless/svg/weather-sunny";
 
 /** Fluent 图标语义名（对应 visual-spec §图标语义表）。 */
-export type FluentIconName = "switchClient" | "refresh" | "themeAuto" | "themeLight" | "themeDark";
+export type FluentIconName =
+  | "switchClient"
+  | "refresh"
+  | "themeAuto"
+  | "themeLight"
+  | "themeDark"
+  | "displayMode"
+  | "chevronDown"
+  | "close";
 
 const FLUENT_ICONS = {
   switchClient: PersonSwapRegular,
@@ -15,6 +26,10 @@ const FLUENT_ICONS = {
   themeAuto: DarkThemeRegular,
   themeLight: WeatherSunnyRegular,
   themeDark: WeatherMoonRegular,
+  // AppsRegular 是 Fluent 官方非等高 2×2 布局图标，符合 visual-spec 的展示模式语义。
+  displayMode: AppsRegular,
+  chevronDown: ChevronDownRegular,
+  close: DismissRegular,
 } as const;
 
 export interface FluentIconProps {

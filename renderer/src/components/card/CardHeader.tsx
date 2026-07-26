@@ -14,12 +14,26 @@
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, Moon, Sun, X } from "lucide-react";
 import type { ClientKind } from "../../domain/types";
+import type { DisplayPreference } from "../../../../shared/desktop";
 import { formatCodexBrand } from "../../domain/usage-view-model";
+import { FluentIcon, type FluentIconName } from "../foundations/FluentIcon";
 import { IconButton } from "../foundations/IconButton";
+import { useDisplayStore } from "../../stores/displayStore";
 import { useThemeStore } from "../../stores/themeStore";
 import { useUsageStore } from "../../stores/usageStore";
+import { radius, spacing, surfaceSizes, typography } from "../../styles/tokens";
+
+const DISPLAY_PREFERENCES: readonly DisplayPreference[] = ["auto", "card", "indicator-bar", "orb"];
+
+const DISPLAY_LABEL_KEYS = {
+  auto: "tray.menu.displayAuto",
+  card: "tray.menu.displayCard",
+  "indicator-bar": "tray.menu.displayBar",
+  orb: "tray.menu.displayOrb",
+} as const satisfies Record<DisplayPreference, string>;
+
+const THEME_CYCLE = ["auto", "light", "dark"] as const;
 
 export interface CardHeaderProps {
   clientKind: ClientKind;
@@ -35,21 +49,43 @@ export function CardHeader({
   onClose,
 }: CardHeaderProps): React.ReactElement {
   const { t } = useTranslation();
-  const resolvedTheme = useThemeStore((s) => s.resolved);
+  const themePreference = useThemeStore((s) => s.preference);
   const setThemePreference = useThemeStore((s) => s.setPreference);
+  const displayPreference = useDisplayStore((s) => s.displayPreference);
+  const setDisplayPreference = useDisplayStore((s) => s.setPreference);
   const setActiveClient = useUsageStore((s) => s.setActiveClient);
   const [clientMenuOpen, setClientMenuOpen] = useState(false);
+  const [displayMenuOpen, setDisplayMenuOpen] = useState(false);
 
   const brand = clientKind === "codex" ? formatCodexBrand(planType) : t("brand.zcode");
 
-  const toggleTheme = (): void => {
-    setThemePreference(resolvedTheme === "dark" ? "light" : "dark");
+  const cycleTheme = (): void => {
+    const currentIndex = THEME_CYCLE.indexOf(themePreference);
+    setThemePreference(THEME_CYCLE[(currentIndex + 1) % THEME_CYCLE.length]!);
   };
+
+  const themeIconName: FluentIconName =
+    themePreference === "auto"
+      ? "themeAuto"
+      : themePreference === "light"
+        ? "themeLight"
+        : "themeDark";
+  const themeLabel =
+    themePreference === "auto"
+      ? t("action.themeAuto")
+      : themePreference === "light"
+        ? t("action.themeLight")
+        : t("action.themeDark");
 
   const switchToClient = (kind: ClientKind): void => {
     setActiveClient(kind);
     onSwitchClient(kind);
     setClientMenuOpen(false);
+  };
+
+  const switchDisplayMode = (preference: DisplayPreference): void => {
+    setDisplayPreference(preference);
+    setDisplayMenuOpen(false);
   };
 
   return (
@@ -95,7 +131,7 @@ export function CardHeader({
             } as React.CSSProperties
           }
         >
-          <ChevronDown size={14} aria-hidden="true" />
+          <FluentIcon name="chevronDown" size={16} />
         </button>
         {clientMenuOpen ? (
           <div
@@ -144,21 +180,95 @@ export function CardHeader({
         ) : null}
       </div>
 
-      {/* 右：3 按钮（主题/模式/关闭）。模式切换 Milestone C 暂不实现功能,留按钮 */}
+      {/* 右：3 按钮（主题/模式/关闭）。 */}
       <div style={{ display: "flex", gap: "8px" }}>
-        <IconButton size="card" aria-label={t("action.switchTheme")} onClick={toggleTheme}>
-          {resolvedTheme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+        <IconButton size="card" aria-label={themeLabel} onClick={cycleTheme}>
+          <FluentIcon name={themeIconName} size={16} />
         </IconButton>
-        <IconButton
-          size="card"
-          aria-label={t("action.switchMode")}
-          onClick={() => undefined}
-          disabled
+        <div
+          style={{ position: "relative" }}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) setDisplayMenuOpen(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setDisplayMenuOpen(false);
+          }}
         >
-          <span style={{ fontSize: "10px", fontWeight: 700 }}>2×2</span>
-        </IconButton>
+          <IconButton
+            size="card"
+            aria-label={t("action.switchMode")}
+            aria-haspopup="menu"
+            aria-expanded={displayMenuOpen}
+            onClick={() => setDisplayMenuOpen((open) => !open)}
+          >
+            <FluentIcon name="displayMode" size={16} />
+          </IconButton>
+          {displayMenuOpen ? (
+            <div
+              role="menu"
+              aria-label={t("tray.menu.displayMode")}
+              style={{
+                position: "absolute",
+                top: `${surfaceSizes.iconButton.card + spacing["1"]}px`,
+                right: 0,
+                minWidth: "max-content",
+                padding: `${spacing["0_5"]}px`,
+                borderRadius: `${radius.button30}px`,
+                background: "var(--c-base-glass)",
+                border: "1px solid var(--c-border)",
+                boxShadow: "var(--shadow-small)",
+                zIndex: 100,
+              }}
+            >
+              {DISPLAY_PREFERENCES.map((preference) => {
+                const selected = displayPreference === preference;
+                return (
+                  <button
+                    key={preference}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={selected}
+                    onClick={() => switchDisplayMode(preference)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: `${spacing["1"]}px`,
+                      width: "100%",
+                      padding: `${spacing["1"]}px ${spacing["1_5"]}px`,
+                      background: selected
+                        ? "color-mix(in srgb, var(--c-accent-start) 18%, transparent)"
+                        : "transparent",
+                      border: "none",
+                      borderRadius: `${radius.button30}px`,
+                      cursor: "pointer",
+                      color: "var(--c-ink)",
+                      fontFamily: typography.caption.fontFamily,
+                      fontSize: `${typography.caption.fontSize}px`,
+                      lineHeight: `${typography.caption.lineHeight}px`,
+                      fontWeight: typography.caption.fontWeight,
+                      whiteSpace: "nowrap",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        width: "6px",
+                        height: "6px",
+                        borderRadius: "50%",
+                        background: selected ? "var(--c-accent-start)" : "transparent",
+                        flexShrink: 0,
+                      }}
+                    />
+                    {t(DISPLAY_LABEL_KEYS[preference])}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
         <IconButton size="card" aria-label={t("action.close")} onClick={onClose}>
-          <X size={16} />
+          <FluentIcon name="close" size={16} />
         </IconButton>
       </div>
     </div>

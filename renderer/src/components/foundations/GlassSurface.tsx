@@ -8,8 +8,9 @@ import React from "react";
  *   3. Inner highlight：1px 内高光（左上更亮）
  *   4. Outer definition：1px 外描边 + 柔和投影
  *
- * 实现用多层 background-image（CSS 不支持伪元素分离时）+ box-shadow inset + 外阴影。
+ * 实现用多层 background-image + box-shadow inset 双层边缘/内部环境光晕。
  * backdrop-filter 作为辅助模糊，主玻璃感来自透明叠层和描边（visual-spec §4 材质约束）。
+ * Electron 固定透明窗口不绘制外部蓝色投影，避免被窗口边缘裁切和暗色背景上的重色边。
  *
  * Aurora 位置（visual-spec §4 Light/Dark 重心）：
  *   - 顶部/中心：blue（Light 18%，Dark navy）
@@ -34,8 +35,6 @@ const glassSurfaceVariants = cva(
     "backdrop-blur-xl",
     // 外描边 1px（visual-spec §4 Outer definition）
     "border border-solid",
-    // Outer highlight：左上更亮的内高光
-    "shadow-[inset_0_1px_0_color-mix(in_srgb,white_42%,transparent)]",
   ].join(" "),
   {
     variants: {
@@ -83,10 +82,18 @@ export function getSurfaceStyle(surface: string): React.CSSProperties {
   const radiusValue = radiusForSurface(surface);
   const aurora = auroraBackgrounds(surface);
 
-  // 外阴影:用户反馈暗色背景下蓝色阴影太明显,去掉 card/capsule 外阴影,只留 border。
-  // 小组件(button)保留极轻 box-shadow 表达层级。
-  // 未来如需恢复阴影,改回 var(--shadow-card) + 调 opacity。
-  const shadow = surface === "button" ? "var(--shadow-small)" : "none";
+  // 一条 box-shadow 串统一承载 1px 内高光、完整 inset edge、右下 shade 与环境光晕。
+  // 旧实现的 inline boxShadow 会覆盖 cva class 里的 highlight，导致主 surface 实际没有内高光。
+  // button 可额外保留小组件中性外阴影；固定透明主窗口继续不绘制外部蓝色投影。
+  const insetDefinition = [
+    "inset 0 1px 0 color-mix(in srgb, var(--c-border) 82%, white 18%)",
+    "inset 1px 0 0 color-mix(in srgb, var(--c-border) 66%, transparent)",
+    "inset 0 0 0 1px color-mix(in srgb, white 10%, transparent)",
+    "inset 0 -1px 0 color-mix(in srgb, var(--c-border) 56%, transparent)",
+    "inset -1px 0 0 color-mix(in srgb, var(--c-border) 36%, transparent)",
+    "inset 0 0 32px color-mix(in srgb, var(--c-blue-wash) 28%, transparent)",
+  ].join(", ");
+  const shadow = surface === "button" ? `${insetDefinition}, var(--shadow-small)` : insetDefinition;
 
   return {
     borderRadius: `${radiusValue}px`,
@@ -103,14 +110,14 @@ export function getSurfaceStyle(surface: string): React.CSSProperties {
 /** aurora wash 渐变定义。button 变体不加 aurora（保持简洁）。 */
 function auroraBackgrounds(surface: string): string {
   if (surface === "button") return "none";
-  // visual-spec §4 Light/Dark 重心。用 radial-gradient 在卡片四角铺极光。
+  // visual-spec §4 Light/Dark 重心。三组规范色扩大柔和衰减范围，避免局部色块和纯平底色。
   return [
     // 顶部/中心 blue（visual-spec：Top/center blue）
-    "radial-gradient(120% 80% at 50% 0%, var(--c-blue-wash) 0%, transparent 55%)",
+    "radial-gradient(110% 90% at 48% -10%, var(--c-blue-wash) 0%, color-mix(in srgb, var(--c-blue-wash) 42%, transparent) 42%, transparent 72%)",
     // 底部/左 mint
-    "radial-gradient(100% 60% at 0% 100%, var(--c-mint-wash) 0%, transparent 60%)",
+    "radial-gradient(92% 82% at -8% 110%, var(--c-mint-wash) 0%, color-mix(in srgb, var(--c-mint-wash) 40%, transparent) 46%, transparent 74%)",
     // 底部/右 violet
-    "radial-gradient(100% 60% at 100% 100%, var(--c-violet-wash) 0%, transparent 60%)",
+    "radial-gradient(92% 82% at 108% 112%, var(--c-violet-wash) 0%, color-mix(in srgb, var(--c-violet-wash) 40%, transparent) 46%, transparent 74%)",
   ].join(", ");
 }
 

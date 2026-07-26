@@ -135,11 +135,9 @@ function OrbShell({
         {
           width: `${g.visible.width}px`,
           height: `${g.visible.height}px`,
-          // v4：去共享层 border，用 box-shadow 做边缘
+          // v4：去共享层外 border；边缘高光/内部环境光晕继续复用 GlassSurface 的 inset 定义
           borderWidth: "0px",
           borderStyle: "none",
-          boxShadow:
-            "inset 0 1px 0 color-mix(in srgb, white 50%, transparent), inset 0 0 0 1px color-mix(in srgb, white 18%, transparent)",
           padding: 0,
           position: "relative",
           // v6：overflow hidden 保证内容不溢出胶囊轮廓（doc.md 第三条 CSS 参考）

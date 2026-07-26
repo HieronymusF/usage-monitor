@@ -22,13 +22,12 @@ import React from "react";
  */
 
 import { useTranslation } from "react-i18next";
-import { Moon, Sun, X } from "lucide-react";
 import type { UsageViewModel, ClientUsageViewModel } from "../../domain/types";
 import { formatToken } from "../../domain/format-token";
 import { computeCountdownParts, formatCountdown } from "../../domain/format-countdown";
 import { GlassSurface } from "../foundations/GlassSurface";
+import { FluentIcon } from "../foundations/FluentIcon";
 import { IconButton } from "../foundations/IconButton";
-import { useThemeStore } from "../../stores/themeStore";
 import { useUsageViewModel } from "../../hooks/useUsageViewModel";
 import { typography } from "../../styles/tokens";
 
@@ -41,21 +40,32 @@ const DIVIDER = "·";
 
 export function IndicatorBar(): React.ReactElement {
   const vm = useUsageViewModel();
-  return <IndicatorBarInner vm={vm} onClose={() => window.close()} />;
+  return (
+    <IndicatorBarInner
+      vm={vm}
+      onClose={() => window.close()}
+      onOpenDisplayMenu={() => window.monitor.openDisplayMenu()}
+    />
+  );
 }
 
 export interface IndicatorBarInnerProps {
   vm: UsageViewModel;
   onClose: () => void;
+  onOpenDisplayMenu: () => void;
 }
 
-export function IndicatorBarInner({ vm, onClose }: IndicatorBarInnerProps): React.ReactElement {
+export function IndicatorBarInner({
+  vm,
+  onClose,
+  onOpenDisplayMenu,
+}: IndicatorBarInnerProps): React.ReactElement {
   const { t } = useTranslation();
 
   // loading / offline：占位
   if (vm.dataState === "loading" || vm.dataState === "offline" || vm.client === null) {
     return (
-      <BarShell onClose={onClose}>
+      <BarShell onClose={onClose} onOpenDisplayMenu={onOpenDisplayMenu}>
         <span style={valueStyle()}>
           {vm.dataState === "offline" ? t("footer.offline") : t("footer.loading")}
         </span>
@@ -65,7 +75,7 @@ export function IndicatorBarInner({ vm, onClose }: IndicatorBarInnerProps): Reac
 
   const client = vm.client;
   return (
-    <BarShell onClose={onClose}>
+    <BarShell onClose={onClose} onOpenDisplayMenu={onOpenDisplayMenu}>
       {client.kind === "zcode" ? (
         <ZCodeSegments client={client} />
       ) : (
@@ -79,16 +89,13 @@ export function IndicatorBarInner({ vm, onClose }: IndicatorBarInnerProps): Reac
 function BarShell({
   children,
   onClose,
+  onOpenDisplayMenu,
 }: {
   children: React.ReactNode;
   onClose: () => void;
+  onOpenDisplayMenu: () => void;
 }): React.ReactElement {
   const { t } = useTranslation();
-  const resolvedTheme = useThemeStore((s) => s.resolved);
-  const setThemePreference = useThemeStore((s) => s.setPreference);
-  const toggleTheme = (): void => {
-    setThemePreference(resolvedTheme === "dark" ? "light" : "dark");
-  };
   return (
     <GlassSurface
       surface="bar"
@@ -114,11 +121,11 @@ function BarShell({
         {children}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-        <IconButton size="bar" aria-label={t("action.switchTheme")} onClick={toggleTheme}>
-          {resolvedTheme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+        <IconButton size="bar" aria-label={t("action.switchMode")} onClick={onOpenDisplayMenu}>
+          <FluentIcon name="displayMode" size={16} />
         </IconButton>
         <IconButton size="bar" aria-label={t("action.close")} onClick={onClose}>
-          <X size={14} />
+          <FluentIcon name="close" size={16} />
         </IconButton>
       </div>
     </GlassSurface>

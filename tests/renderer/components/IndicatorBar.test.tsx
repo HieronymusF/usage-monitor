@@ -24,7 +24,7 @@ import React from "react";
 
 import "./jsdom-setup";
 import { afterEach } from "node:test";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -43,14 +43,20 @@ afterEach(cleanup);
 
 const NOW = () => new Date("2026-07-18T08:01:00.000Z");
 
-function renderBar(snapshot: typeof codexDual, activeClient: string = "codex"): HTMLElement {
+function renderBar(
+  snapshot: typeof codexDual,
+  activeClient: string = "codex",
+  onOpenDisplayMenu: () => void = () => undefined,
+): HTMLElement {
   const vm = toUsageViewModel({
     snapshot,
     error: null,
     activeClientId: activeClient,
     now: NOW,
   });
-  const { container } = render(<IndicatorBarInner vm={vm} onClose={() => undefined} />);
+  const { container } = render(
+    <IndicatorBarInner vm={vm} onClose={() => undefined} onOpenDisplayMenu={onOpenDisplayMenu} />,
+  );
   return container;
 }
 
@@ -65,14 +71,31 @@ test("Bar Codex Dual: 品牌 Codex + 5H 42% + 周 64% + 今日 1.7M", () => {
   assert.ok(screen.getAllByText("1.7M").length > 0, "今日 1.7M");
 });
 
-test("Bar Codex Dual: 2 个 IconButton（主题 + 关闭）", () => {
+test("Bar Codex Dual: 2 个 IconButton（展示模式 + 关闭）", () => {
   i18n.changeLanguage("zh-CN");
   const container = renderBar(codexDual);
   const buttons = container.querySelectorAll("button");
-  assert.ok(buttons.length >= 2, "至少 2 个按钮（主题 + 关闭）");
+  assert.equal(buttons.length, 2, "固定为 2 个按钮（展示模式 + 关闭），不挤压内容区");
   const labels = Array.from(buttons).map((b) => b.getAttribute("aria-label") ?? "");
-  assert.ok(labels.includes("切换主题"), "应有主题切换按钮");
+  assert.ok(labels.includes("切换展示模式"), "应有展示模式按钮");
   assert.ok(labels.includes("关闭"), "应有关闭按钮");
+  assert.equal(labels.includes("切换主题"), false, "横条操作位按规范留给展示模式");
+});
+
+test("Bar Codex Dual: 点击展示模式按钮打开四态菜单", () => {
+  i18n.changeLanguage("zh-CN");
+  let opened = 0;
+  const container = renderBar(codexDual, "codex", () => {
+    opened += 1;
+  });
+
+  fireEvent.click(
+    Array.from(container.querySelectorAll("button")).find(
+      (button) => button.getAttribute("aria-label") === "切换展示模式",
+    )!,
+  );
+
+  assert.equal(opened, 1);
 });
 
 test("Bar Codex NoQuota: 5H 显示 —，不显示 0%/100%", () => {

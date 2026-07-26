@@ -299,6 +299,48 @@ TypeScript JSX 解析器在某些上下文（特别是属性值里嵌套 `${}`�
 
 ---
 
+## L18. 主题 capture 要覆盖完整主题真相链，不能只改 systemTheme
+
+**失败模式**：capture 已让 `getContext()` 按 `CAPTURE_THEME` 返回 light/dark，但 ThemeProvider 随后会 `getPreferences()`，用持久化 `themePreference` hydrate 并覆盖前一步，导致 `--theme dark` 与 Light 截图字节完全相同。
+
+**根因**：`execution-gap`。只验证了 systemTheme 入口，没有验证 renderer 的最终主题状态；同一状态存在 systemTheme 与持久化 preference 两个依次生效的真相源。
+
+**预防规则**：任何 preview/fixture 覆盖都要列出该状态的全部真相源和后续 hydrate。capture 的 `getPreferences` 必须返回同主题的临时 preference，禁止写盘；生产无 `CAPTURE_PREVIEW` 时原样返回 repository settings。
+
+**验证方法**：固定内容分别 capture Light/Dark，确认文件哈希不同并人工复核主题；再跑生产路径的偏好/ThemeProvider 测试，确认没有改变真实设置。
+
+**证据**：`electron/main.ts` capture-only preference override；2026-07-25 Card/Indicator Bar/Orb/Edge Capsule 的 Light/Dark 8 张固定视口截图。
+
+**最后确认**：2026-07-25。
+
+## L19. 多形态操作语义必须从功能矩阵派生，测试不能复述当前 DOM
+
+**失败模式**：展开后的 EdgeCapsule 原本应提供展示模式切换，却被实现成刷新；Indicator Bar 则完全漏掉展示模式入口。组件测试只断言了现有按钮，因而把错误实现固化成“绿色证据”。
+
+**根因**：`reasoning-error`。实现和测试都从局部组件当前结构出发，没有先列 Card / Indicator Bar / EdgeCapsule 的操作语义矩阵；固定窗口的菜单会被边界裁切这一限制也没有在入口设计时统一处理。
+
+**预防规则**：跨 surface 的共享能力先从 PRD/开发计划写出逐形态矩阵，再实现按钮。固定尺寸窗口需要越界菜单时统一走受 sender 校验的主进程原生菜单；菜单项模板复用，但 renderer/主进程真相源仍保持唯一。每个组件测试同时断言“应存在的动作”和“不得出现的错误动作”。
+
+**验证方法**：Card、Bar、Capsule 分别覆盖入口与点击；原生菜单覆盖四个 radio 项、当前项和选择回调；打包后检查主进程、preload、renderer 三段链路，最后仍由用户在 portable 中真机点击。
+
+**证据**：2026-07-26 用户更正 EdgeCapsule/Bar 按钮语义；修复后聚焦展示入口/菜单/动态图标 52/52，完整 `npm run check` 615/615。
+
+**最后确认**：2026-07-26。
+
+## L20. 带进度语义的托盘图标不能使用固定静态圆弧
+
+**失败模式**：托盘 SVG 使用固定 `stroke-dasharray="356 72"`，视觉恒定约 83%；每周额度重置为 99% 后，托盘仍像 80%，让用户误以为数据没有同步。
+
+**根因**：`reasoning-error`。把“额度进度”误当品牌装饰烘焙进静态资源，没有定义图标的数据来源、缺失态和更新时机。
+
+**预防规则**：任何百分比/进度形状必须由真实快照动态生成；本项目 Codex 优先周额度、回退 5h，结果 clamp 到 0–100，ZCode/无配额/非法值显示中性轨道而不是伪造 0% 或 100%。首次取数、刷新和客户端切换都必须更新托盘图标与 tooltip。
+
+**验证方法**：纯函数覆盖周额度、5h 回退、ZCode、缺失、非法值与 clamp；像素测试断言 10% < 80% < 99% 的彩色弧长度；用真实 Electron `nativeImage.createFromBuffer` 验证 PNG 非空和尺寸，再做 portable 真机视觉确认。
+
+**证据**：2026-07-26 动态 32×32 PNG 在 Electron 中解码为 `empty=false`；新 portable 已生成，当前 99% 真机视觉待用户确认。
+
+**最后确认**：2026-07-26。
+
 ## Milestone A 复验 8 反模式（A-H）
 
 > 来源：2026-07-18 Milestone A 两轮复验反推。每条对应一个真实的 P1 bug。

@@ -18,6 +18,9 @@ const ICON_NAMES: readonly FluentIconName[] = [
   "themeAuto",
   "themeLight",
   "themeDark",
+  "displayMode",
+  "chevronDown",
+  "close",
 ];
 
 test("FluentIcon: 所有语义都渲染正式 Fluent SVG，不再输出字体字符", () => {
@@ -44,4 +47,12 @@ test("FluentIcon: 主题三态使用互不相同的官方 Fluent 路径", () => 
     unmount();
   }
   assert.equal(paths.size, 3, "Auto、Light、Dark 不得复用同一个近似图标");
+});
+
+test("FluentIcon: 展示模式使用官方非等高 2×2 Apps 图标", () => {
+  const { container } = render(<FluentIcon name="displayMode" size={16} />);
+  const icon = container.querySelector('svg[data-icon-name="displayMode"]');
+  assert.ok(icon, "展示模式应渲染 Fluent SVG");
+  assert.ok((icon.querySelector("path")?.getAttribute("d") ?? "").length > 0);
+  assert.equal(icon.textContent, "", "不得回退为 2×2 文本或 Unicode 图标");
 });

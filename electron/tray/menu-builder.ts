@@ -120,14 +120,7 @@ export function buildTrayMenuTemplate(
   const themeLabels = THEME_LABELS[settings.language];
   const clientLabels = CLIENT_LABELS[settings.language];
 
-  const displayItems: MenuItemConstructorOptions[] = (
-    ["auto", "card", "indicator-bar", "orb"] as const
-  ).map((pref) => ({
-    label: displayLabel(s, pref),
-    type: "radio" as const,
-    checked: settings.displayPreference === pref,
-    click: () => callbacks.setDisplayPreference(pref),
-  }));
+  const displayItems = buildDisplayModeMenuTemplate(settings, callbacks.setDisplayPreference);
 
   const clientItems: MenuItemConstructorOptions[] = (["codex", "zcode"] as const).map((client) => ({
     label: clientLabels[client],
@@ -169,6 +162,20 @@ export function buildTrayMenuTemplate(
     },
     { label: s.quit, click: () => callbacks.quit() },
   ];
+}
+
+/** Card/Bar/Capsule 的展示模式按钮复用与托盘完全相同的四态原生菜单。 */
+export function buildDisplayModeMenuTemplate(
+  settings: Settings,
+  onSelect: (pref: DisplayPreference) => void,
+): MenuItemConstructorOptions[] {
+  const strings = STRINGS[settings.language];
+  return (["auto", "card", "indicator-bar", "orb"] as const).map((pref) => ({
+    label: displayLabel(strings, pref),
+    type: "radio" as const,
+    checked: settings.displayPreference === pref,
+    click: () => onSelect(pref),
+  }));
 }
 
 function displayLabel(s: TrayStrings, pref: DisplayPreference): string {

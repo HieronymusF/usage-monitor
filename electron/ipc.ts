@@ -6,6 +6,7 @@ import type {
   PreferenceKey,
   PreferenceValue,
   Settings,
+  SurfaceKind,
   SystemTheme,
 } from "../shared/desktop.js";
 import { validateSurfaceKind } from "../shared/desktop.js";
@@ -53,6 +54,8 @@ export function broadcastUsage(snapshot: MultiClientSnapshot): void {
 export interface DesktopIpcCallbacks {
   getPreferences(): Settings;
   onSetPreference(key: PreferenceKey, value: PreferenceValue): void;
+  onUsageSnapshot(snapshot: MultiClientSnapshot): void;
+  onOpenDisplayMenu(surface: SurfaceKind): void;
 }
 
 export function registerDesktopIpc(
@@ -80,9 +83,11 @@ export function registerDesktopIpc(
     };
   });
   // 验收轮 4 P1：getUsage 校验 sender——未知 sender 拒绝（invoke reject），不读取用量数据。
-  ipcMain.handle(desktopChannels.getUsage, (event) => {
+  ipcMain.handle(desktopChannels.getUsage, async (event) => {
     requireTrustedSender(event.sender.id, "getUsage", resolveSurface);
-    return bridgeClient.getUsage();
+    const snapshot = await bridgeClient.getUsage();
+    callbacks.onUsageSnapshot(snapshot);
+    return snapshot;
   });
   // Milestone E-F 验收修复（问题 3）：refreshUsage 拿到新快照后立即广播给所有 renderer，
   // 不丢弃返回值、不等下一轮轮询。托盘刷新和 renderer 自身刷新都经此。
@@ -91,6 +96,7 @@ export function registerDesktopIpc(
     requireTrustedSender(event.sender.id, "refreshUsage", resolveSurface);
     const snapshot = await bridgeClient.refreshUsage();
     broadcastUsage(snapshot);
+    callbacks.onUsageSnapshot(snapshot);
     return snapshot;
   });
 
@@ -117,6 +123,13 @@ export function registerDesktopIpc(
     void windowManager.showOnly(validKind).catch((err: unknown) => {
       console.error("[ipc] showOnly failed:", err);
     });
+  });
+
+  // 固定尺寸 Bar/Capsule 的 renderer 下拉层会被窗口边界裁切，改由主进程弹原生菜单。
+  ipcMain.on(desktopChannels.openDisplayMenu, (event) => {
+    const trust = allowTrustedSender(event.sender.id, "openDisplayMenu", resolveSurface);
+    if (!trust || trust.kind !== "trusted") return;
+    callbacks.onOpenDisplayMenu(trust.surface);
   });
 
   // D-3 切片 3（P1-3 修复）：Orb 拖动 —— 单向命令。
@@ -198,6 +211,7 @@ export function registerDesktopIpc(
     ipcMain.removeHandler(desktopChannels.getPreferences);
     ipcMain.removeAllListeners(desktopChannels.resizeCardWindow);
     ipcMain.removeAllListeners(desktopChannels.showSurface);
+    ipcMain.removeAllListeners(desktopChannels.openDisplayMenu);
     ipcMain.removeAllListeners(desktopChannels.moveOrb);
     ipcMain.removeAllListeners(desktopChannels.dragOrbEnd);
     ipcMain.removeAllListeners(desktopChannels.setPreference);

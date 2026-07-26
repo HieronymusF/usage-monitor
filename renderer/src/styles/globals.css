@@ -55,18 +55,18 @@
   /* 文字 / 图标 — JSON §color.light.ink 等 */
   --c-ink: #101827;
   --c-secondary: #334455;
-  --c-tertiary: #566b82;
+  --c-tertiary: #52677e;
   /* 强调与状态 */
   --c-accent-start: #376dff;
   --c-accent-end: #35b5ff;
-  --c-success: #087c61;
-  --c-warning: #986000;
-  --c-danger: #c23745;
+  --c-success: #08725a;
+  --c-warning: #8f5800;
+  --c-danger: #bd3442;
   /* 结构 */
   --c-rail: #b9c9de;
   --c-border: #d7e2f1;
   /* 玻璃材质 4 层（visual-spec §4 材质配方） */
-  --c-base-glass: #f8fcffe6; /* 90% 不透明冷白 */
+  --c-base-glass: #f8fcfff0; /* 94% 不透明冷白：最暗桌面背景上仍守住小字对比度 */
   --c-blue-wash: #cfe8ff2e; /* 18% */
   --c-mint-wash: #c8f7ea33; /* 20% */
   --c-violet-wash: #ddd2ff38; /* 22% */
@@ -89,7 +89,7 @@
   --c-accent-end: #38d2ff;
   --c-success: #22c55e;
   --c-warning: #d29922;
-  --c-danger: #f87171;
+  --c-danger: #fb7b7b;
   --c-rail: #33445e;
   --c-border: #475569;
   --c-base-glass: #071b33eb;

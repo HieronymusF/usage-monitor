@@ -1,6 +1,6 @@
 # HANDOFF — codex-usage-monitor
 
-> 最后更新：2026-07-24（Asia/Hong_Kong，**Milestone H 切片 3 核心 Orb 交互已获用户真机确认；系统级场景继续待验**）：Orb 已采用独立控制器 + `peek / revealed / floating / expanded` 四态。hover 只露出完整 Orb，移开 1 秒重新半隐藏；拖动碰到左右边缘时恢复 revealed 贴边语义并进入同一回藏流程，未碰边时才保持自由悬浮；Capsule 离开 1 秒或外部点击时收起，并恢复展开前的自由 Orb 或边缘半隐藏态。`npm run check` exit 0，**601 绿/0 失败**；标准 portable 已重建并核验包内拖放分流代码与资源。AI 未启动 UI、未写入真实开机启动项。开机自启重登录、重启恢复、多屏/混合 DPI 等系统级场景仍待验。详见 §4.1.5、§4.1.6、§8.2。
+> 最后更新：2026-07-26（Asia/Hong_Kong，**三形态展示模式入口对齐 + 动态托盘额度图标完成**）：Card、Indicator Bar、展开后的 EdgeCapsule 均可进入 Auto / Card / Indicator Bar / Orb 四态菜单；EdgeCapsule 原误放的刷新按钮已恢复为展示模式按钮，Indicator Bar 补齐该入口。托盘图标不再使用固定约 83% 的静态圆弧，现按 Codex 真实剩余额度动态绘制，ZCode/无配额时显示中性轨道。`npm run check` exit 0，**615 绿/0 失败**；独立新 portable 已生成。下一步是用户退出当前旧 portable 后启动新包，真机确认三形态菜单、99% 托盘圆环和重启持久化，再进入 installer、升级/回退与发布说明；多屏、侧边任务栏、显示器断开与混合 DPI 留后续硬件复验。详见 §4.1.9、§8.2。
 > 项目：`D:\TokenUsage\plugins\codex-usage-monitor`
 > 发布目标：`main`。本轮发布范围统一包含三组关联改动：① Milestone H 打包骨架 + 切片 2 开机自启/正式图标 + 切片 3 位置持久化；② ZCode GLM-5.2 适配；③ portable Codex session 配额降级 + 动态套餐标题 + current/lifetime 语义修复。具体分支、提交与工作区状态必须以现场 Git 结果为准；不得回退任一组。
 
@@ -73,7 +73,7 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 - **a11y**：reduced-motion 由 `globals.css` 的 `@media (prefers-reduced-motion: reduce)` 全局处理（CSS transition/animation 归零，已存在）。Orb 状态点 `StatusDot` 从 `aria-hidden` 改 `role="img" + aria-label={t(health.*)}`（不只靠颜色，DEVELOPMENT-PLAN §12）。按钮 aria-label/focus-visible 已由 IconButton 共享层覆盖（审查确认）。
 - **i18n key 补全**：`en.json`/`zh-CN.json` 加 `tray.menu.*` 子组（文档性，主进程字典已内嵌）。
 
-**已知限制**：① 开机自启和正式托盘图标已自动化/打包验证，但尚未由用户做真实勾选、重登录和托盘视觉验收。② per-surface 位置/吸附边持久化、Orb 四态交互和边缘/自由拖放分流的代码、迁移、算法/协议测试及 portable 重建已完成；固定/自动模式 hover、revealed 与 expanded 离开 1 秒收起、碰边吸附、任意位置悬浮、窗口外点击、重启、双屏、显示器断开与混合 DPI 尚未由用户验收。③ 全量对比度审计未做（留玻璃材质优化）。
+**已知限制**：① 正式托盘图标、开机启动启用/取消及重启结果已由用户真机确认。② per-surface 位置/吸附边持久化、Orb 四态核心交互、边缘/自由拖放分流及退出重开后的位置恢复已由用户确认；双屏、侧边任务栏、显示器断开与混合 DPI 尚未验收。③ 玻璃材质与 token 级全量对比度审计已完成；真实任意桌面背景由黑/白极端合成守护，不等同于所有 Windows 壁纸逐一真机截图。
 
 **D-2/D-3 状态**：全部完成并真机验收通过（详见 §5 历史 + §7 契约）。
 
@@ -110,7 +110,7 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 
 **D-2 EdgeCapsule v30 状态**（已完成，详见 §5/§7）。
 
-**D-3 已完成真机验收。下一步候选**：见 §8（commit D-3 / Milestone E-F 托盘设置 / Milestone G 主题持久化 / Milestone H 打包 / 共享层玻璃材质优化）。
+**D-3 已完成真机验收**；后续 Milestone E-F+G、Milestone H 核心链路、共享玻璃材质及 Card 自动验收也已完成，当前下一步见 §8 的 portable 菜单快验与 Phase 8 发布收尾。
 
 ### 4.1.2 Milestone H 切片 1：Electron portable 打包骨架（代码完成，真机验证待用户，2026-07-24）
 
@@ -179,7 +179,7 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 - 无界面启动打包后的 `release/win-unpacked/Usage Monitor.exe`（`ELECTRON_RUN_AS_NODE=1`）执行 `app.asar/dist/companionBridge.js`，`GET /usage` HTTP 200；当次返回 `planType=pro`、每周已用 6%/剩余 94%、`currentTask=null`、lifetime 保留。配额百分比会随 Codex 使用动态变化。
 - 未由 AI 启动 portable UI；新 exe 的最终视觉/交互仍由用户手动复验。
 
-### 4.1.5 Milestone H 切片 2：开机自启 + 正式托盘图标（代码与打包验证完成，真机验收待用户，2026-07-24）
+### 4.1.5 Milestone H 切片 2：开机自启 + 正式托盘图标（✅ 真机验收通过，2026-07-25）
 
 **范围**：在现有偏好单一入口上加入开机自启，不引入设置弹窗；为托盘和 portable exe 提供同一套正式多分辨率图标。位置/吸附边持久化仍留切片 3。
 
@@ -197,9 +197,9 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 - `npm run dist` 成功产出 `release/usage-monitor-portable-0.2.0.exe`（108,073,783 bytes，2026-07-24 18:51）。`release/win-unpacked/resources/usage-monitor.ico` 为 56,518 bytes，与源码 ICO 的 SHA-256 同为 `83413B21A0ACD59CF17E81B7471C20A66FAB67411434EC81C7886E2EFE0482EF`；从 portable exe 提取的关联图标也为正式用量环图标。
 - 已验证 electron-builder portable 脚本把 `PORTABLE_EXECUTABLE_FILE` 设置为外层 `$EXEPATH`。AI 未启动应用，未勾选/取消真实 Windows 开机启动项。
 
-**待用户真机验收**：运行新 portable，确认托盘显示正式图标；勾选「开机启动」后 checkbox 保持选中，重登录/重启后应用从外层 portable exe 自启；再取消勾选并确认下次不自启。切片 3 已继续实现，可与位置恢复一起验收。
+**真机验收（用户确认，2026-07-25）**：正式托盘图标显示正常；启用「开机启动」后可随系统启动；取消后重启不再启动。切片 2 验收通过。
 
-### 4.1.6 Milestone H 切片 3：per-surface 位置 / 显示器 / 贴边持久化（代码与打包验证完成，真机验收待用户，2026-07-24）
+### 4.1.6 Milestone H 切片 3：per-surface 位置 / 显示器 / 贴边持久化（核心交互与重启恢复真机通过，2026-07-25）
 
 **范围**：Card、Indicator Bar、Orb、Edge Capsule 各自保存位置；跨重启恢复；显示器断开、分辨率、任务栏 workArea 和 DPI 变化时安全回退。坐标只由 Electron 主进程维护，不向 renderer 扩展坐标设置接口。
 
@@ -220,7 +220,59 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 - `npm run check` 整体 exit 0：`npm test` 549 绿 + `test:server` 52 绿 = **601 绿/0 失败**；typecheck/lint（180 文件）/format/build/plugin validation 全过。聚焦交互/位置/真实 PowerShell 协议 72/72，其中本轮几何+控制器 29/29。
 - 标准 `release/usage-monitor-portable-0.2.0.exe` 已由 electron-builder 正常重建（108,066,550 bytes，2026-07-24 22:52:44；SHA-256 `442F9A1F2321F7A672F9E79C2C6B7ED46C60FA08125E5FE12ABCA167E0C0ED46`）。`app.asar` 直接确认包含 `inferOrbDropEdge`、drag-end 碰边保存 snapEdge、边缘进入 revealed / 自由进入 floating，以及 revealed/expanded 离开计时；portable 归档直接列出 `resources/app.asar`、`resources/probe-daemon.ps1`、`resources/usage-monitor.ico`。AI 未启动 UI；为覆盖旧 portable，明确结束了用户正在测试的旧版主进程。
 
-**待用户真机验收**：分别在自动和固定 Orb 模式确认半隐藏 hover 后露出完整 Orb，移开 1 秒重新半隐藏；拖到左右屏幕边缘后应自动吸附，移开 1 秒回半隐藏；拖到屏幕中间则应原位悬浮且离开不消失。点击 Orb 展开 Capsule，窗口外点击应立即收起，离开 Capsule 1 秒也应收起。自由来源应回自由 Orb，边缘来源应回同边半隐藏。退出重开确认位置，再覆盖双屏、侧边任务栏、混合 DPI 和显示器断开。
+**真机验收（用户确认，2026-07-24/25）**：自动/固定 Orb 四态核心交互、边缘/自由拖放分流、Capsule 收起链路此前已通过；2026-07-25 进一步确认退出重开后位置恢复正常。剩余双屏、侧边任务栏、混合 DPI 和显示器断开场景待有对应硬件时补验，不阻塞共享玻璃材质优化。
+
+### 4.1.7 共享玻璃材质 + 全量对比度审计（完成，2026-07-25）
+
+**实现**：
+
+- `GlassSurface` 修复 inline `boxShadow` 覆盖 cva class inset highlight 的问题；主 surface 统一输出 1px 左上内高光、完整 inset edge、右下 shade 和内部 ambient halo，继续禁用会被透明窗口裁切且用户曾判定过重的外部蓝色投影。button 额外保留 `--shadow-small`。
+- Aurora 仍只用 blue/mint/violet 三组规范 wash，扩大渐变柔和衰减范围；不新增业务色。Orb 移除本地重复 box-shadow，保留无外 border 约束并复用共享 inset 定义。
+- Light base glass 从 90% 提到 visual-spec 允许上限 94%；收深 Light tertiary/success/warning/danger，Dark danger 小幅提亮。`css-tokens.test.ts` 新增透明玻璃在纯黑/纯白桌面背景、三组 wash 0/峰值组合下的 WCAG 守护：小字号语义色 ≥4.5:1，accent 焦点/图形 ≥3:1。
+- 修复 capture 主题矩阵：`CAPTURE_THEME` 除 `systemTheme` 外也覆盖 capture renderer 取得的 `themePreference`，避免 ThemeProvider hydrate 后把 dark 截图改回持久化 light/auto。生产偏好链路不变。
+
+**验证**：
+
+- `npm run check` 整体 exit 0：`npm test` 551 绿 + `test:server` 52 绿 = **603 绿/0 失败**；typecheck/lint（180 文件）/format/build/plugin validation 全过。
+- Card、Indicator Bar、Orb、Edge Capsule 的 Light/Dark 固定视口 capture 共 8 张复核通过：无换行、裁切、尺寸或信息层级回归；Dark 顶边经一次校正后为冷灰蓝，不是白亮线。
+- 本次未构建 portable、未启动生产 UI；capture 模式窗口只用于自动截图并退出。
+
+### 4.1.8 Card 像素验收 + CardHeader 展示模式菜单（代码与自动验收完成，2026-07-26）
+
+**实现**：
+
+- `CardHeader` 删除禁用的 `2×2` 文字占位，改用 `FluentIcon` 封装的官方 `AppsRegular` 非等高布局 SVG；点击后显示 Auto / Card / Indicator Bar / Orb 四态 `menuitemradio` 菜单，当前偏好有可见圆点与 `aria-checked`。
+- `displayStore` 新增 `setPreference`：renderer 乐观更新后调用既有窄 IPC `setPreference("displayPreference", value)`；主进程仍经 `commitPreference` 统一写盘、广播、托盘重建和 `SurfaceWindowManager.showOnly` / Auto watcher 副作用，没有新增第二真相源。
+- Card 主题按钮从基于 resolved theme 的 Light/Dark 二态切换改为 preference 的 Auto → Light → Dark → Auto 三态；主题、展示模式、关闭及客户端下拉箭头统一使用 Fluent 官方 SVG。展示菜单支持 Escape、失焦关闭、Tab + Enter/Space 键盘操作。
+- 没有改 Card 主区、配额分类、圆环或 Token Tray 视觉；保留用户已确认的简化 Hero/Side ring 契约，避免借菜单任务重做布局。
+
+**验证**：
+
+- 聚焦 typecheck + CardHeader/displayStore/FluentIcon/Card 组合测试：46/46；新增 6 项后全量 `npm run check` exit 0：`npm test` 557 绿 + `test:server` 52 绿 = **609 绿/0 失败**，lint 181 文件、format、production build、plugin validation 全过。
+- Electron capture：Codex Dual / WeeklyOnly / FiveOnly / NoQuota + ZCode LocalData / NoData × Light/Dark，共 12 张固定视口（Codex 576×404、ZCode 576×333）逐张复核；另做 Dual 与 ZCode NoData 的 150%/200% 合成缩放代表态。无换行、裁切、尺寸跳变、标题栏顺序或缺失态回归。合成缩放不等同于真实混合 DPI 硬件验收。
+- 截图证据：`D:\Codex\UserData\.codex\visualizations\2026\07\26\019f9c4b-3eed-7a92-a369-0460a243adb5\card-acceptance\`。
+- portable：`release/usage-monitor-portable-0.2.0.exe`，108,068,580 bytes，2026-07-26 11:08:57 +08:00，SHA-256 `1492CF4FBE0CD1BDAF761E5C74F96E561DC2B443F55360C4BB29C80A9DD25370`。打包成功后无本项目残留进程。
+- AI 未启动生产 UI；当前会话的本地浏览器控制入口不可用，因此真实 CardHeader 点击通过 React DOM + store/IPC 测试验证，**新 portable 中的菜单点击与形态切换仍待用户快速真机确认**。主进程展示切换链路与已真机通过的托盘 displayPreference 共用同一 `commitPreference`。
+
+### 4.1.9 展示模式入口回归 + 动态托盘额度图标（代码与自动验证完成，真机待用户，2026-07-26）
+
+**用户更正与根因**：
+
+- 展开后的 EdgeCapsule 本应与 Card 一样提供展示模式切换，中间按钮却漂移成刷新；Indicator Bar 则完全没有展示模式入口。此前测试复述了错误实现，没有按跨形态功能矩阵断言按钮语义。
+- `resources/usage-monitor-icon.svg` 的圆弧固定为 `stroke-dasharray="356 72"`，按约 427 的周长计算恒定显示约 83%，因此额度重置到 99% 后托盘仍像 80%；这不是刷新延迟，而是把进度语义画进了静态品牌资源。
+
+**实现**：
+
+- EdgeCapsule Action Rail 保留客户端切换与主题按钮，中间按钮恢复为 Fluent `displayMode`；Indicator Bar 的两个右侧按钮固定为展示模式与关闭。Card 继续使用 renderer 内菜单。
+- 固定尺寸的 Bar/Capsule 若直接展开 HTML 菜单会被窗口边界裁切，因此新增受 sender 校验保护的窄 IPC `openDisplayMenu`，由主进程弹出原生四态单选菜单；菜单项与托盘复用 `buildDisplayModeMenuTemplate`，选择后仍走既有 `commitPreference` 单一入口。
+- 新增 `electron/tray/usage-icon.ts`：Codex 优先取 10080 分钟周额度，缺失时回退 300 分钟 5h 额度，限制到 0–100 后生成动态 PNG；ZCode、无配额或非法值返回中性轨道。托盘在首次取数、手动刷新和客户端切换时更新图标与 tooltip。
+
+**验证**：
+
+- 测试先红后绿：聚焦组件/原生菜单/动态图标 52/52；完整 `npm run check` exit 0，`npm test` 563 + `test:server` 52 = **615 绿/0 失败**，typecheck、lint 183 文件、format、production build、plugin validation 全过。
+- 真实 Electron `nativeImage.createFromBuffer` 解码 99% PNG：`empty=false`、32×32；10%/80%/99% 像素测试确认彩色圆弧单调增长，中性态无蓝色额度弧。预览：`D:\Codex\UserData\.codex\visualizations\2026\07\26\019f9c4b-3eed-7a92-a369-0460a243adb5\tray-icon-fix\`。
+- 最终候选 portable：`release/candidate-final/usage-monitor-portable-0.2.0.exe`，108,069,790 bytes，2026-07-26 12:02:12 +08:00，SHA-256 `A3D23FD78EEAE9635EE85E593AF0126C0639AEDED8EBBDC7A11AA8D801F9A42B`。打包后的 `app.asar` 已确认包含主进程菜单通道、动态图标、preload 通道和 renderer 展示模式按钮。
+- **真机边界**：旧 portable 当前仍由用户运行并持有 Electron single-instance lock，AI 未停止它；capture 启动因此没有生成本轮 Bar/Capsule 新截图。用户必须先退出旧实例，再启动 `release/candidate-final`，确认原生菜单点击、形态切换、当前 99% 托盘圆环及刷新后的动态更新。
 
 ### 4.2 卡点
 
@@ -230,14 +282,14 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 
 - Node `v24.15.0` / npm `11.14.1`
 - Electron `43.1.1` / electron-vite `5.0.0` / React `19.2.7` / Vite `7.3.6`
-- AI 本轮未启动 Electron 应用；不要把自动化/打包结果写成 UI 或真实登录项验收。
-- **注意：用户系统是 dark 主题**（`nativeTheme.shouldUseDarkColors=true`），dev/capture 都在 dark 下渲染。文字颜色对比度问题部分源于 dark 玻璃背景偏浅，需要后续玻璃材质优化。
+- AI 未启动或停止生产浮窗；仅尝试了被旧实例 single-instance lock 拦截的 capture，并用无窗口 Electron 进程验证 PNG `nativeImage` 解码。不要把自动化/打包结果写成真实菜单点击或托盘视觉验收。
+- **注意：用户系统是 dark 主题**（`nativeTheme.shouldUseDarkColors=true`）。dev 默认随真实偏好/系统；capture 必须显式按 `CAPTURE_THEME` 渲染并覆盖临时 themePreference。玻璃与语义色对比度已于 §4.1.7 完成审计。
 - **工作方式调整**：AI 不再主动 `npm start` 启动浮窗做真机验证（用户反馈浮窗碍眼）。真机手测由用户用 `start-electron.cmd` 自行启动。AI 验证用自动化测试 + capture 静态截图。
 
 ### 4.4 最近一次验证
 
-`npm run check`：**整体 exit 0**（2026-07-24，Milestone H 切片 3 真机反馈修正后复跑）。typecheck ✓（server/desktop/tests 三 bucket）/ lint ✓（180 文件）/ format ✓ / **`npm test` = 547 绿 exit 0** / build ✓ / validate:plugin ✓ / **`test:server` = 52 绿 exit 0**。
-**测试总数**：**601 绿 / 0 失败**。另有聚焦交互/位置/真实 PowerShell 协议 72/72、真实本机 CodexSource、打包后 companion bridge、portable 构建/资源哈希，以及 Slice 3 `app.asar` 四态交互代码标记验证通过（详见 §4.1.4/§4.1.5/§4.1.6）。
+`npm run check`：**整体 exit 0**（2026-07-26，三形态展示模式入口与动态托盘图标完成后复跑）。typecheck ✓（server/desktop/tests 三 bucket）/ lint ✓（183 文件）/ format ✓ / **`npm test` = 563 绿 exit 0** / build ✓ / validate:plugin ✓ / **`test:server` = 52 绿 exit 0**。
+**测试总数**：**615 绿 / 0 失败**。另有 Card 六数据态 Light/Dark 固定视口 12 张 + 代表性缩放 capture 4 张复核、四形态共享玻璃 Light/Dark capture、展示入口/原生菜单/动态图标聚焦测试 52/52、真实 Electron `nativeImage` 32×32 PNG 解码、聚焦交互/位置/真实 PowerShell 协议 72/72、真实本机 CodexSource、打包后 companion bridge、最新 portable 构建/资源哈希及 `app.asar` 新链路标记验证通过（详见 §4.1.4–§4.1.9）。
 **本轮修复（2026-07-24）**：时区测试失败修复（§4.1.1）→ `test:server` 48→49。**关于 format 的更正**：核实中一度看到 `format:check` 报 30 文件不符并据此判断"E-F+G commit 未跑 prettier"，**此判断错误**——在 HEAD `760cf2a` 干净树上 `format:check` 本就 exit 0 全过。那 30 文件的"不符"是中途 `prettier --write` 在 `core.autocrlf=true` + 无 `.gitattributes` 环境下引入的 CRLF/LF 行尾假象（`git diff -w` 显示零内容差异），经 `git stash` 规范化后消失，**这些文件无需也无可改动**（已全部还原）。真正阻塞 check 的只有时区测试那 1 个 server 失败，修后 check 整体 exit 0。教训见 §9 新增 lesson。**遗留建议（已落实）**：仓库原本无 `.gitattributes`，`core.autocrlf=true` 下任何 `prettier --write` 都会制造行尾假象。**本轮已新增 `.gitattributes`**（`* text=auto eol=lf` + `*.ps1 binary` 保护 BOM + 二进制资源显式 binary）并 `git add --renormalize` 规整，从根上消除该问题（详见 §9 L37）。
 **test 脚本拆分（E-F+G 轮）**：`npm test` 只含 4 个会绿的 bucket（build:server 前置 + renderer×3 + electron×1）；`test:server` 单独跑 server；`check` 末步跑 `test:server`。未用 `;` 串联（Windows cmd 不识别为分隔符）。时区测试修复后 server bucket 也 exit 0，check 末步不再拖黑。
 **全 IPC sender 校验（验收轮 4 P1）**：getUsage/refreshUsage/resizeCardWindow/showSurface 补齐校验，与既有 getPreferences/setPreference/moveOrb/dragOrbEnd/getOrbBounds/getContext 统一复用 preferences.ts 的 `requireTrustedSender`（invoke 类拒绝）/`allowTrustedSender`（send 类忽略+记录）。getUsage/refreshUsage 未知 sender reject（不读取/广播数据）；resizeCardWindow/showSurface 未知 sender 忽略+记录（不执行窗口副作用）；保留参数校验（codex/zcode、validateSurfaceKind）。+6 测试（preferences-integration：requireTrustedSender/allowTrustedSender 合法/未知）。
@@ -254,7 +306,9 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 
 - ✅ **D-3 已通过**（2026-07-23 用户确认）：hover/拖动/自动切换/并发（详见 §5 历史）。
 - ✅ **E-F+G 已通过**（2026-07-24 用户确认）：托盘菜单/偏好重启恢复/语言切换/displayPreference 启停 watcher/主题跟随全部手测通过。
-- ⚠️ **待验收 / 延期**：开机启动、正式托盘图标、位置持久化、Orb 四态交互与边缘/自由拖放分流的代码和打包均已完成；仍待用户真实勾选/重登录/视觉验收，以及固定/自动 Orb 模式、revealed 与 expanded 离开 1 秒收起、碰边吸附、自由位置悬浮、窗口外点击、重启、多屏、显示器断开和混合 DPI 验收。完整 Phase 6/7 Gate 另有 a11y 全量审计未完成。
+- ✅ **Milestone H 切片 2 已通过**（2026-07-25 用户确认）：正式图标正常；开机启动启用后生效，取消后重启不再启动。
+- ✅ **Milestone H 切片 3 核心交互与重启位置恢复已通过**（2026-07-24/25 用户确认）：固定/自动 Orb、四态交互、边缘/自由拖放、Capsule 收起及退出重开位置恢复正常。
+- ⚠️ **待验收 / 延期**：双屏、侧边任务栏、显示器断开与混合 DPI；token 级对比度审计已完成，Phase 6 的硬件矩阵仍未全覆盖。
 
 ### 4.5 v28 最终修正（2026-07-22，5 项）+ 已知限制
 
@@ -388,7 +442,7 @@ v28 修复 v27 复验指出的 5 项缺陷：
   - **托盘 / 应用图标**：`resources/usage-monitor.ico` 含 16–256px 九档，tray 运行时通过 extraResources 读取，portable exe 通过 `win.icon` 嵌入；资源异常才回退内嵌占位。
   - **开机自启**：仅 packaged Windows 应用 `app.setLoginItemSettings`；electron-builder portable 优先注册 `PORTABLE_EXECUTABLE_FILE` 外层路径，development/非 Windows/非法路径明确跳过。真实重登录验收仍待用户。
   - **位置/四态交互（H 切片 3）**：四形态各存 workArea 相对坐标、displayId、snapEdge；原显示器缺失回退主屏并 clamp。边缘 Orb 半隐藏→hover 完整，移开 1 秒重新半隐藏；drag-end 碰到/越过左右边缘时吸附为 revealed，未碰边时以自由 placement 原位停留；点击才展开 Capsule；Capsule 外部点击/离开 1 秒收起并恢复展开前 placement。代码/测试/打包完成，真实交互/重启/多屏/混合 DPI 待验。
-  - **未做（留后续）**：全量对比度 a11y 审计（玻璃材质优化时做）；设置弹窗 UI（用户选定仅托盘）。
+  - **已完成**：全量对比度 a11y 审计与共享玻璃材质优化（§4.1.7）。**不做**：设置弹窗 UI（用户选定仅托盘）。
 
 ## 8. 下一步
 
@@ -410,17 +464,18 @@ v28 修复 v27 复验指出的 5 项缺陷：
 
 ### 8.2 下一步主要工作
 
-**Milestone H 切片 1 已真机通过；切片 2/3 代码与打包已完成**（2026-07-24，§4.1.2/§4.1.4/§4.1.5/§4.1.6）。下一步按依赖顺序：
+**Milestone H 切片 1/2 已真机通过；切片 3 核心交互与重启位置恢复已通过**（2026-07-24/25，§4.1.2/§4.1.4/§4.1.5/§4.1.6）。下一步按依赖顺序：
 
 1. **✅ Milestone H 切片 1 核心真机验收通过**：2026-07-24 用户截图确认新 portable 可启动、`CODEX · PRO`、每周配额正常、“当前任务”不再显示 lifetime 1B。自动切换/托盘/刷新属于此前已通过功能的快速回归项，不阻塞进入下一切片。
-2. **【当前待用户验收】Milestone H 切片 2**：运行 `release/usage-monitor-portable-0.2.0.exe`，确认托盘为正式用量环图标；勾选「开机启动」并确认菜单保持选中；重登录/重启后应用能从外层 portable exe 自启；取消勾选后下次不再自启。AI 未改真实登录项，不能用自动化结果冒充本项通过。
-3. **【核心交互已通过，系统级场景待验】Milestone H 切片 3**：用户已确认半隐藏 hover、移开回藏、碰边吸附、自由悬浮、点击展开与 Capsule 自动收起的核心链路。后续只需退出重开确认位置，并覆盖双屏、侧边任务栏、混合 DPI 与显示器断开。AI 未启动 UI，不能用自动化/打包验证冒充剩余系统级场景通过。
-4. **【上述验收后】共享层玻璃材质整体优化**（aurora wash 强度、内部高光、双层边缘、环境光晕）—— Orb v3 遗留的 3 项（§7 末）；含全量对比度 a11y 审计。
-5. **Card 剩余小事**（§8.4）：Codex Card 像素验收、CardHeader 展示模式菜单实际功能。
+2. **✅ Milestone H 切片 2 真机验收通过**：2026-07-25 用户确认正式图标正常；启用后可开机启动；取消后重启不再启动。
+3. **✅ Milestone H 切片 3 核心交互与重启位置恢复通过**：用户已确认半隐藏 hover、移开回藏、碰边吸附、自由悬浮、点击展开、Capsule 自动收起及退出重开位置恢复。双屏、侧边任务栏、混合 DPI 与显示器断开留后续硬件复验。
+4. **✅ 共享层玻璃材质整体优化 + 全量对比度审计完成**：Aurora 柔和衰减、内部高光、双层边缘、内部环境光晕和语义色对比度守护已完成；四形态 Light/Dark capture 通过（§4.1.7）。
+5. **✅ Card 剩余像素验收 + CardHeader 展示模式菜单代码完成**：禁用 `2×2` 已替换为 Fluent SVG 和四态菜单；展示偏好走既有主进程单一入口；12 张 Light/Dark Card + 4 张代表性缩放 capture 通过（§4.1.8）。
+6. **✅ Bar/Capsule 展示入口 + 动态托盘额度图标代码完成**：EdgeCapsule 刷新按钮恢复为展示模式，Bar 补齐入口；原生菜单与托盘共用四态模板；固定约 83% 静态弧改为真实额度 PNG，完整 `npm run check` 615/615，最终候选 portable 在 `release/candidate-final`（§4.1.9）。
+7. **【当前下一步】portable 快速真机确认 + Phase 8 发布收尾**：用户先退出仍在运行的旧 portable，再启动 `release/candidate-final`；在 Card、Bar、展开 Capsule 中分别打开四态菜单并切换，确认重启偏好；同时确认当前 99% 托盘接近满环且刷新后会更新。通过后补 installer、升级/回退和发布说明。
 
-- 用户确认：CardHeader 当前禁用的 `2×2` 是展示模式占位，不单独修改；到第 5 项实现真实展示模式菜单时一并替换/移除。
-- 真机验收通过后回填此处 + DEVELOPMENT-PLAN §15 Phase 8 Gate（功能对等矩阵全过 + 旧 WPF 退役条件 §18.5）。
-- 注：时区测试失败 + format 债已于 2026-07-24 修复（§4.1.1/§4.4）；Milestone H 切片 1/2/3 及四态交互修正的代码与打包均已完成。`npm run check` 现整体 exit 0，601 绿。
+- 自动验收已完成，但不要把 React DOM/原生菜单模板测试或 PNG 解码写成 portable 真机确认；完整 Phase 8 Gate 仍需第 7 项、installer、升级/回退及剩余系统级场景完成后再判定。
+- 注：时区测试失败 + format 债已于 2026-07-24 修复（§4.1.1/§4.4）；Milestone H 切片 1/2/3、四态交互、共享玻璃和三形态展示入口/动态图标代码及打包均已完成。`npm run check` 现整体 exit 0，615 绿。
 
 ## 9. 哪些坑不要再踩
 
@@ -508,3 +563,7 @@ v28 修复 v27 复验指出的 5 项缺陷：
 ### Milestone H 切片 3 位置持久化教训（2026-07-24）
 
 - **L42（位置持久化必须保存 workArea 相对坐标 + 显示器 + 完整贴边语义）**：保存 `displayId + offsetX/offsetY + snapEdge`，恢复时匹配/回退/clamp；边缘 placement 可半隐藏，自由 placement 用 `snapEdge=null`。交互控制器独立于 Auto watcher；状态机含 peek/revealed/floating/expanded，revealed 离开 1 秒回 peek，expanded 离开 1 秒恢复展开前 placement。前次把“展开状态”窄化为 Capsule 属于 `information-gap`；本次把“支持自由悬浮”实现成“所有 drag-end 都清空 snapEdge”属于 `reasoning-error`，因为边缘回藏与自由停留本应按最终 bounds 分流。预防规则：为每态显式记录 hover/leave/outside-click/click/drag，并让 drag-end 测试同时覆盖碰边、越界和未碰边。跨任务规则详见 `AGENT_LESSONS.md` L17。
+
+### 共享玻璃材质与 capture 主题教训（2026-07-25）
+
+- **L43（主题 capture 必须同时覆盖 systemTheme 与持久化 themePreference）**：只让 `getContext()` 返回 `CAPTURE_THEME=dark` 不够；ThemeProvider 随后会 `getPreferences()` hydrate 用户保存的 auto/light 并覆盖 dark，表现为 Light/Dark 截图字节完全相同。capture 回调必须返回同主题的临时 preference，且不能写盘或影响生产偏好。详见 `AGENT_LESSONS.md` L18。

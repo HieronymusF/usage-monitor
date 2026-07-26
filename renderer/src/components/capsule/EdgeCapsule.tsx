@@ -4,7 +4,7 @@ import React from "react";
  *
  * v26（D-2 收尾）：行为接入 + token 化 + 规范统一。
  *   - ActionRail 复用 IconButton（size="rail" 40×40），自带 tooltip/hover/pressed/focus-visible/no-drag
- *   - 切换客户端 / 刷新 / 主题 三态循环 接入真实 store/bridge（不再是 () => undefined）
+ *   - 切换客户端 / 展示模式 / 主题 三态循环接入真实 store/bridge（不再是 () => undefined）
  *   - EdgeWing 收起控件改为 native <button>（键盘可达、Enter/Space、no-drag）
  *   - 删除所有硬编码 hex/rgba/字号：inkColor/secondaryColor/tertiaryColor → var(--c-ink/-secondary/-tertiary)；
  *     字号 → typography token（displayS/metricL/labelL/body/caption）
@@ -107,7 +107,7 @@ function nextThemePreference(current: ThemePreference): ThemePreference {
 }
 
 export function EdgeCapsule(): React.ReactElement {
-  const { refresh, ...vm } = useUsageViewModel();
+  const vm = useUsageViewModel();
   const activeClient = useUsageStore((s) => s.activeClient);
   const setActiveClient = useUsageStore((s) => s.setActiveClient);
   const themePreference = useThemeStore((s) => s.preference);
@@ -126,7 +126,7 @@ export function EdgeCapsule(): React.ReactElement {
       // v27：收起切回 Orb（showSurface("orb") → main 调 showOnly，隐藏 edge-capsule 显示 orb，不退出应用）
       onClose={() => window.monitor.showSurface("orb")}
       onSwitchClient={handleSwitchClient}
-      onRefresh={() => void refresh()}
+      onOpenDisplayMenu={() => window.monitor.openDisplayMenu()}
       onCycleTheme={handleCycleTheme}
       themePreference={themePreference}
     />
@@ -137,7 +137,7 @@ export interface EdgeCapsuleInnerProps {
   vm: UsageViewModel;
   onClose: () => void;
   onSwitchClient: () => void;
-  onRefresh: () => void;
+  onOpenDisplayMenu: () => void;
   onCycleTheme: () => void;
   themePreference: ThemePreference;
 }
@@ -146,7 +146,7 @@ export function EdgeCapsuleInner({
   vm,
   onClose,
   onSwitchClient,
-  onRefresh,
+  onOpenDisplayMenu,
   onCycleTheme,
   themePreference,
 }: EdgeCapsuleInnerProps): React.ReactElement {
@@ -158,7 +158,7 @@ export function EdgeCapsuleInner({
         onClose={onClose}
         vm={vm}
         onSwitchClient={onSwitchClient}
-        onRefresh={onRefresh}
+        onOpenDisplayMenu={onOpenDisplayMenu}
         onCycleTheme={onCycleTheme}
         themePreference={themePreference}
       >
@@ -173,7 +173,7 @@ export function EdgeCapsuleInner({
       onClose={onClose}
       vm={vm}
       onSwitchClient={onSwitchClient}
-      onRefresh={onRefresh}
+      onOpenDisplayMenu={onOpenDisplayMenu}
       onCycleTheme={onCycleTheme}
       themePreference={themePreference}
     >
@@ -199,7 +199,7 @@ function CapsuleShell({
   onClose,
   vm,
   onSwitchClient,
-  onRefresh,
+  onOpenDisplayMenu,
   onCycleTheme,
   themePreference,
 }: {
@@ -207,7 +207,7 @@ function CapsuleShell({
   onClose: () => void;
   vm: UsageViewModel;
   onSwitchClient: () => void;
-  onRefresh: () => void;
+  onOpenDisplayMenu: () => void;
   onCycleTheme: () => void;
   themePreference: ThemePreference;
 }): React.ReactElement {
@@ -290,7 +290,7 @@ function CapsuleShell({
         onClose={onClose}
         vm={vm}
         onSwitchClient={onSwitchClient}
-        onRefresh={onRefresh}
+        onOpenDisplayMenu={onOpenDisplayMenu}
         onCycleTheme={onCycleTheme}
         themePreference={themePreference}
       />
@@ -311,14 +311,14 @@ function RightControls({
   onClose,
   vm,
   onSwitchClient,
-  onRefresh,
+  onOpenDisplayMenu,
   onCycleTheme,
   themePreference,
 }: {
   onClose: () => void;
   vm: UsageViewModel;
   onSwitchClient: () => void;
-  onRefresh: () => void;
+  onOpenDisplayMenu: () => void;
   onCycleTheme: () => void;
   themePreference: ThemePreference;
 }): React.ReactElement {
@@ -350,7 +350,7 @@ function RightControls({
       >
         <ActionRail
           onSwitchClient={onSwitchClient}
-          onRefresh={onRefresh}
+          onOpenDisplayMenu={onOpenDisplayMenu}
           onCycleTheme={onCycleTheme}
           themePreference={themePreference}
         />
@@ -875,12 +875,12 @@ function TodaySection({
  */
 function ActionRail({
   onSwitchClient,
-  onRefresh,
+  onOpenDisplayMenu,
   onCycleTheme,
   themePreference,
 }: {
   onSwitchClient: () => void;
-  onRefresh: () => void;
+  onOpenDisplayMenu: () => void;
   onCycleTheme: () => void;
   themePreference: ThemePreference;
 }): React.ReactElement {
@@ -926,8 +926,8 @@ function ActionRail({
       <IconButton size="rail" aria-label={t("action.switchClient")} onClick={onSwitchClient}>
         <FluentIcon name="switchClient" size={g.actionIconSize} />
       </IconButton>
-      <IconButton size="rail" aria-label={t("action.refresh")} onClick={onRefresh}>
-        <FluentIcon name="refresh" size={g.actionIconSize} />
+      <IconButton size="rail" aria-label={t("action.switchMode")} onClick={onOpenDisplayMenu}>
+        <FluentIcon name="displayMode" size={g.actionIconSize} />
       </IconButton>
       <IconButton size="rail" aria-label={themeLabel} onClick={onCycleTheme}>
         {themeIcon}

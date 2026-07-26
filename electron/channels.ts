@@ -7,6 +7,7 @@ export const desktopChannels = {
   usageChanged: "usage:changed",
   resizeCardWindow: "card:resize-window",
   showSurface: "surface:show",
+  openDisplayMenu: "surface:open-display-menu",
   moveOrb: "orb:move",
   dragOrbEnd: "orb:drag-end",
   getOrbBounds: "orb:get-bounds",

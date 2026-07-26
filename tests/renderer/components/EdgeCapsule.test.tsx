@@ -4,7 +4,7 @@ import React from "react";
  *
  * v26 架构（D-2 收尾）：
  * - ActionRail 复用 IconButton（size="rail" 40×40），自带 tooltip/hover/pressed/focus-visible
- * - 切换客户端 / 刷新 / 主题三态循环 接入真实 handler（不再 () => undefined）
+ * - 切换客户端 / 展示模式 / 主题三态循环 接入真实 handler（不再 () => undefined）
  * - EdgeWing 收起控件改为 native <button>（键盘可达、Enter/Space、no-drag）
  * - 删除硬编码 hex/字号：颜色用 var(--c-*)、字号用 typography token
  * - 删除左侧主额度区重复「更新于」，只在今日 Token 下保留一次
@@ -56,7 +56,7 @@ function renderCapsule(
   handlers: {
     onClose?: () => void;
     onSwitchClient?: () => void;
-    onRefresh?: () => void;
+    onOpenDisplayMenu?: () => void;
     onCycleTheme?: () => void;
     themePreference?: ThemePreference;
     /** 注入 error 让 vm.dataState 进 refresh-error/offline。默认 null。 */
@@ -75,7 +75,7 @@ function renderCapsule(
       vm={vm}
       onClose={handlers.onClose ?? noop}
       onSwitchClient={handlers.onSwitchClient ?? noop}
-      onRefresh={handlers.onRefresh ?? noop}
+      onOpenDisplayMenu={handlers.onOpenDisplayMenu ?? noop}
       onCycleTheme={handlers.onCycleTheme ?? noop}
       themePreference={handlers.themePreference ?? "auto"}
     />,
@@ -313,15 +313,22 @@ test("v26 行为: 点击「切换客户端」触发 onSwitchClient", () => {
   assert.equal(switched, 1, "点击切换客户端应调用 onSwitchClient 一次");
 });
 
-test("v26 行为: 点击「刷新」触发 onRefresh", () => {
+test("回归: 展开悬浮球的中间按钮恢复为展示模式，不再是刷新", () => {
   i18n.changeLanguage("zh-CN");
-  let refreshed = 0;
+  let opened = 0;
   const container = renderCapsule(codexDual, "codex", {
-    onRefresh: () => (refreshed += 1),
+    onOpenDisplayMenu: () => (opened += 1),
   });
-  const btn = findActionButton(container, "刷新");
+  const btn = findActionButton(container, "切换展示模式");
   fireEvent.click(btn);
-  assert.equal(refreshed, 1, "点击刷新应调用 onRefresh 一次");
+  assert.equal(opened, 1, "点击展示模式应打开四态菜单");
+  assert.equal(
+    Array.from(container.querySelectorAll("button")).some(
+      (button) => button.getAttribute("aria-label") === "刷新",
+    ),
+    false,
+    "ActionRail 不应继续显示误替换的刷新按钮",
+  );
 });
 
 test("v26 行为: 点击「主题」触发 onCycleTheme", () => {
@@ -388,7 +395,7 @@ test("v26 IconButton: ActionRail 三个按钮都有 title（tooltip，来自 ari
   const rail = container.querySelector("div[style*='58px']") ?? container;
   const actionBtns = [
     findActionButton(container, "切换客户端"),
-    findActionButton(container, "刷新"),
+    findActionButton(container, "切换展示模式"),
     findActionButton(container, "主题：跟随系统"),
   ];
   for (const btn of actionBtns) {
@@ -413,7 +420,7 @@ test("v26 IconButton: ActionRail 按钮尺寸 40px（rail 变体）", () => {
 //
 // 测试外层 EdgeCapsule 的真实 store/bridge 接线：
 // - onClose → window.monitor.showSurface("orb")（不再 window.close）
-// - onRefresh → window.monitor.refreshUsage
+// - onOpenDisplayMenu → window.monitor.openDisplayMenu
 // - onSwitchClient → usageStore.setActiveClient
 //
 // 外层调 useUsageViewModel（useSWR→window.monitor），需 mock window.monitor + 用 preview 模式
@@ -434,19 +441,19 @@ function clearPreviewUrl(): void {
 /** 装 window.monitor mock，返回调用记录。 */
 function installMockMonitor(): {
   showSurfaceCalls: string[];
-  refreshCalls: number;
+  openDisplayMenuCalls: number;
 } {
   const showSurfaceCalls: string[] = [];
-  const refreshCalls = { value: 0 };
+  const openDisplayMenuCalls = { value: 0 };
   (globalThis as { window: typeof globalThis & { monitor?: unknown } }).window.monitor = {
     getContext: async () => ({ platform: "win32", surface: "edge-capsule", systemTheme: "light" }),
     getUsage: async () => codexDual,
-    refreshUsage: async () => {
-      refreshCalls.value += 1;
-      return codexDual;
-    },
+    refreshUsage: async () => codexDual,
     showSurface: (kind: string) => {
       showSurfaceCalls.push(kind);
+    },
+    openDisplayMenu: () => {
+      openDisplayMenuCalls.value += 1;
     },
     onSystemThemeChange: () => () => {},
     onUsageChanged: () => () => {},
@@ -454,8 +461,8 @@ function installMockMonitor(): {
   };
   return {
     showSurfaceCalls,
-    get refreshCalls() {
-      return refreshCalls.value;
+    get openDisplayMenuCalls() {
+      return openDisplayMenuCalls.value;
     },
   };
 }
@@ -482,7 +489,7 @@ test("v27 外层: 收起按钮调用 window.monitor.showSurface('orb')（不退�
   clearPreviewUrl();
 });
 
-test("v27 外层: 点击刷新调用 window.monitor.refreshUsage", async () => {
+test("外层: 点击展示模式调用 window.monitor.openDisplayMenu", async () => {
   i18n.changeLanguage("zh-CN");
   setPreviewUrl("dual");
   useUsageStore.setState({ snapshot: null, error: null, activeClient: "codex" });
@@ -494,12 +501,10 @@ test("v27 外层: 点击刷新调用 window.monitor.refreshUsage", async () => {
     assert.ok(screen.getAllByText("CODEX · PLUS").length > 0);
   });
 
-  const btn = findActionButton(container, "刷新");
+  const btn = findActionButton(container, "切换展示模式");
   fireEvent.click(btn);
 
-  await waitFor(() => {
-    assert.ok(monitor.refreshCalls >= 1, "点击刷新应调用 refreshUsage");
-  });
+  assert.equal(monitor.openDisplayMenuCalls, 1, "点击后应请求主进程打开四态菜单");
   clearPreviewUrl();
 });
 

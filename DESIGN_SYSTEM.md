@@ -35,7 +35,7 @@
 - 文字：`var(--c-ink)` / `--c-secondary` / `--c-tertiary`
 - 强调与状态：`--c-accent-start` → `--c-accent-end`（渐变方向只在 ProgressRing 用）、`--c-success` / `--c-warning` / `--c-danger`
 - 结构：`--c-rail`（数据轨道）、`--c-border`（1px 描边）
-- 玻璃材质 4 层：`--c-base-glass` + `--c-blue-wash` + `--c-mint-wash` + `--c-violet-wash`，封装在 `GlassSurface`，业务组件不要自己拼
+- 玻璃材质 4 层：`--c-base-glass` + `--c-blue-wash` + `--c-mint-wash` + `--c-violet-wash`，封装在 `GlassSurface`，业务组件不要自己拼。固定透明窗口的层级由“外 border + 1px inset 双层边缘 + 内部 ambient halo”表达，不恢复会被窗口裁切且曾被用户判定过重的外部蓝色投影。
 
 完整颜色表见 `globals.css` §Light / §Dark。Light/Dark 切换靠 `<html>` 上的 `.light`/`.dark` class（`ThemeProvider` 写），不依赖 `prefers-color-scheme`。
 
@@ -191,7 +191,7 @@ import { Stack } from "@/components/layout";
 | Expanded Edge Capsule | 720 × 180  | 720 × 180  | false     |
 
 - **所有窗口 `resizable: false`**，无 DPI 自适应逻辑，不读 `screen.width` 硬编码布局
-- 阴影画到窗口边缘被自然裁切（WPF `BlurRadius=48` 行为），透明窗口 + `GlassSurface` 内部不加投影（用户反馈暗色背景下蓝色阴影太明显）
+- 阴影画到窗口边缘会被自然裁切（WPF `BlurRadius=48` 行为），透明窗口不加外部投影（用户反馈暗色背景下蓝色阴影太明显）；`GlassSurface` 只允许 inset 内高光、双层边缘和内部环境光晕
 - 按钮、链接必须 `-webkit-app-region: no-drag`（`globals.css` 已全局设）
 - `contextIsolation` + sandbox 必须开，IPC 只暴露窄接口（AGENTS.md §"Migration boundaries"）
 - 透明窗口区域可拖动（`-webkit-app-region: drag` 在非交互背景上）
@@ -244,6 +244,13 @@ import { Stack } from "@/components/layout";
 | `borderRadius: "18px"`（TokenTray）                    | `radius.tray` (22)     | tray surface 必须用对应 radius，原 18 是写错 |
 | `padding: "10px 16px"`（TokenTray）                    | `12px 16px`            | 纵向归一到 spacing.1_5                       |
 | `marginLeft: "14px"`（TokenTray 数字）                 | 删除，改用 grid 列对齐 | 视觉补偿值，反例                             |
+
+### 共享玻璃材质修订（2026-07-25）
+
+- `GlassSurface` 的 inline `boxShadow` 曾覆盖 class 中的 inset highlight，实际主 surface 没有内高光；现由单一 token-driven shadow 串统一输出完整 inset 层。
+- Aurora 仍只使用 blue / mint / violet 三组规范颜色，不加第四种色；扩大柔和衰减范围以减少色块感。
+- Light base glass 从 90% 提到规范上限 94%，并收深小字号语义色，保证透明玻璃叠在最暗桌面背景时仍达到 4.5:1；Dark danger 同步提高最亮极光区域的对比度。
+- 外部蓝色投影继续禁用；层级通过外 border + inset 1px 边缘 + 内部 ambient halo 表达。
 
 ## 12. 新增 surface 规则
 

@@ -99,6 +99,30 @@ test("CSS 防漂移: light 与 dark 有相同的颜色 key 集合", () => {
   assert.deepEqual(lightKeys, darkKeys, "light/dark 颜色 key 必须对称");
 });
 
+test("a11y 对比度: 小字号语义色在透明玻璃与极光叠层的最差背景上 >= 4.5:1", () => {
+  const textKeys = ["ink", "secondary", "tertiary", "success", "warning", "danger"];
+  for (const theme of ["light", "dark"] as const) {
+    const colors = tokensJson.color[theme];
+    const surfaces = glassBackgroundExtremes(colors);
+    for (const key of textKeys) {
+      const foreground = parseHexColor(colors[key]!);
+      const worst = Math.min(...surfaces.map((surface) => contrastRatio(foreground, surface)));
+      assert.ok(worst >= 4.5, `${theme}.${key} 最差对比度 ${worst.toFixed(2)} < 4.5`);
+    }
+  }
+});
+
+test("a11y 对比度: accent 作为焦点环/图形边界在透明玻璃最差背景上 >= 3:1", () => {
+  for (const theme of ["light", "dark"] as const) {
+    const colors = tokensJson.color[theme];
+    const accent = parseHexColor(colors.accentStart!);
+    const worst = Math.min(
+      ...glassBackgroundExtremes(colors).map((surface) => contrastRatio(accent, surface)),
+    );
+    assert.ok(worst >= 3, `${theme}.accentStart 最差对比度 ${worst.toFixed(2)} < 3`);
+  }
+});
+
 // ---------- 辅助函数 ----------
 
 function extractBlock(css: string, pattern: RegExp): string | null {
@@ -108,4 +132,56 @@ function extractBlock(css: string, pattern: RegExp): string | null {
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+type Rgb = [number, number, number];
+type Rgba = [number, number, number, number];
+
+function parseHexColor(value: string): Rgba {
+  const hex = value.slice(1);
+  const rgb = [0, 2, 4].map((index) => Number.parseInt(hex.slice(index, index + 2), 16)) as Rgb;
+  return [...rgb, hex.length === 8 ? Number.parseInt(hex.slice(6, 8), 16) : 255];
+}
+
+function composite(foreground: Rgba, background: Rgb): Rgb {
+  const alpha = foreground[3] / 255;
+  return foreground
+    .slice(0, 3)
+    .map((channel, index) => channel * alpha + background[index]! * (1 - alpha)) as Rgb;
+}
+
+function glassBackgroundExtremes(colors: Record<string, string>): Rgb[] {
+  const base = parseHexColor(colors.baseGlass!);
+  const washes = [colors.blueWash!, colors.mintWash!, colors.violetWash!].map(parseHexColor);
+  const surfaces: Rgb[] = [];
+
+  // 透明窗口可能叠在任意桌面背景上；用纯黑/纯白包住两端。
+  // 每个 mask 覆盖三组 aurora 在该像素从 0 到 token 峰值的组合。
+  for (const backdrop of [
+    [0, 0, 0],
+    [255, 255, 255],
+  ] as Rgb[]) {
+    for (let mask = 0; mask < 8; mask += 1) {
+      let surface = composite(base, backdrop);
+      for (let index = 0; index < washes.length; index += 1) {
+        if ((mask & (1 << index)) !== 0) surface = composite(washes[index]!, surface);
+      }
+      surfaces.push(surface);
+    }
+  }
+  return surfaces;
+}
+
+function contrastRatio(foreground: Rgb | Rgba, background: Rgb): number {
+  const lighter = Math.max(relativeLuminance(foreground), relativeLuminance(background));
+  const darker = Math.min(relativeLuminance(foreground), relativeLuminance(background));
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function relativeLuminance(color: Rgb | Rgba): number {
+  const [red, green, blue] = color.map((channel) => {
+    const normalized = channel / 255;
+    return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
 }

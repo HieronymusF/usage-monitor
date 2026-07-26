@@ -7,6 +7,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildDisplayModeMenuTemplate,
   buildTrayMenuTemplate,
   TRAY_STRINGS,
   type TrayMenuCallbacks,
@@ -131,6 +132,25 @@ test("click 回调：子菜单 setDisplayPreference 传正确值", () => {
   // 点 orb（index 3）
   display[3]?.click?.();
   assert.deepEqual(cb.calls, ["display:card", "display:orb"]);
+});
+
+test("浮窗展示模式菜单复用托盘四态、语言和当前选中项", () => {
+  const calls: string[] = [];
+  const menu = buildDisplayModeMenuTemplate(
+    { ...DEFAULT_SETTINGS, displayPreference: "indicator-bar", language: "zh-CN" },
+    (pref) => calls.push(pref),
+  );
+
+  assert.deepEqual(
+    menu.map((item) => item.label),
+    ["自动", "卡片", "指示条", "悬浮球"],
+  );
+  assert.deepEqual(
+    menu.map((item) => item.checked),
+    [false, false, true, false],
+  );
+  menu[3]?.click?.(undefined as never, undefined as never, undefined as never);
+  assert.deepEqual(calls, ["orb"]);
 });
 
 test("click 回调：主题/客户端/语言子菜单传正确值", () => {
