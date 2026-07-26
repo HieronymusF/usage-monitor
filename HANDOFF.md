@@ -1,6 +1,6 @@
 # HANDOFF — codex-usage-monitor
 
-> 最后更新：2026-07-26（Asia/Hong_Kong，**current-task installer 真机安装/卸载通过**）：用户已确认 current-task 修复 portable 显示正常，接受当前 Electron 路线并暂不做 WebView2/其他技术迁移；随后确认新 installer 的真实安装、卸载均已试过且未报告异常。`npm run check` exit 0，**621 绿/0 失败**；portable 为 82,322,234 bytes（78.5 MiB），installer 为 91,535,840 bytes（87.3 MiB）。设置保留、快捷方式、portable 回退和跨版本升级未被本次用户反馈明确覆盖，继续标为未验证。详见 §4.1.4、§4.1.10、§8.2。
+> 最后更新：2026-07-26（Asia/Hong_Kong，**v1.0.0 首个正式版已发布**）：GitHub Release `v1.0.0` 已创建为非草稿、非预发布并标记 Latest，标签指向 `9628a7b8b0f43d9713e5e867d8591984570f7dab`。远端包含 `usage-monitor-portable-1.0.0.exe`（82,323,149 bytes）和 `usage-monitor-setup-1.0.0.exe`（82,586,788 bytes），上传后的字节数与本地一致。`npm run check` exit 0，**621 绿/0 失败**。发布地址：`https://github.com/HieronymusF/usage-monitor/releases/tag/v1.0.0`。文件仍未代码签名；跨版本升级与部分硬件矩阵留后续版本。
 > 项目：`D:\TokenUsage\plugins\codex-usage-monitor`
 > 发布目标：`main`。本轮发布范围统一包含三组关联改动：① Milestone H 打包骨架 + 切片 2 开机自启/正式图标 + 切片 3 位置持久化；② ZCode GLM-5.2 适配；③ portable Codex session 配额降级 + 动态套餐标题 + current/lifetime 语义修复。具体分支、提交与工作区状态必须以现场 Git 结果为准；不得回退任一组。
 
@@ -292,11 +292,12 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 - 当前精简 portable：`release/portable-current-task-fix-20260726/usage-monitor-portable-0.2.0.exe`，82,322,234 bytes（78.5 MiB），SHA-256 `C695556A773A0DCD4F473AB466E90E90A4A8C2171B02A2779DF044C5D1B73A7C`；较最终旧候选 108,069,790 bytes 减少 23.8%。包内 asar 45 项、`node_modules` 为 0，所需 main/preload/renderer/bridge 全存在；打包 Electron-as-node 真实日志返回 current/lifetime 独立数值，用户已真机确认窗口 UI 正常。
 - 当前精简 installer：`release/installer-current-task-fix-20260726/usage-monitor-setup-0.2.0.exe`，91,535,840 bytes（87.3 MiB），SHA-256 `78B5618BCFE824E7873145FDE2FEF5CAF425FA8FA98FE13C981A06B822293C8B`；包含已通过 portable 真机确认的 current/lifetime 修复。
 - 当前解包目录为 317,674,802 bytes（303.0 MiB），`app.asar` 为 1,229,333 bytes（1.2 MiB）。asar 的 `node_modules` 条目为 0，主进程/preload/renderer/bridge 全存在；外部 `probe-daemon.ps1` 与正式图标均存在。
-- **发布边界**：精简候选仍为 `NotSigned`，可能触发 SmartScreen；AI 没有运行 installer 或 uninstaller，用户已确认真实安装、卸载均已试过且未报告异常。设置保留、快捷方式、portable 回退与跨版本升级仍需独立验收。剩余约 303 MiB 主要是 Electron/Chromium（仅主 exe 即 215.1 MiB）；若目标是几十 MiB 级安装体积，必须先切换技术架构。
+- v1.0.0 正式产物：`release/v1.0.0-build-20260726/usage-monitor-portable-1.0.0.exe`，82,323,149 bytes，SHA-256 `243D1A6717B173C62230ADEC475F52171F7F498288534A02558E4E83487B69D4`；`usage-monitor-setup-1.0.0.exe`，82,586,788 bytes，SHA-256 `A187DE0284D1C957A1E19BBC491D3F968888FAF7E6B4F236C42BA8D6AF5BCB68`。文件/产品/asar 版本均为 1.0.0，远端资产字节数匹配。
+- **发布边界**：v1.0.0 仍为 `NotSigned`，可能触发 SmartScreen。用户已决定作为首个正式版发布；跨版本升级、设置/回退细项和部分硬件矩阵作为已知限制保留。剩余约 303 MiB 主要是 Electron/Chromium。
 
 ### 4.2 卡点
 
-无代码卡点。用户已接受当前 Electron 路线并决定暂不做 WebView2/其他技术迁移；真实安装、卸载已由用户完成。下一步只核对设置保留、快捷方式和 portable 回退。正式公开发布仍缺代码签名，真正跨版本覆盖升级要等下一版本包出现后验证。
+无代码卡点。v1.0.0 首个正式版已发布；下一步是观察实际下载/使用反馈，并在下一版本验证跨版本覆盖升级。代码签名和剩余硬件矩阵按需要补充。
 
 ### 4.3 运行环境
 
@@ -498,9 +499,10 @@ v28 修复 v27 复验指出的 5 项缺陷：
 8. **✅ 精简 portable current-task 真机通过**：x64 portable 为 78.5 MiB，较旧候选减少 23.8%；current/lifetime 修复后 621/621，asar 与真实日志模块加载通过，用户确认“当前任务”显示正常（§4.1.4/§4.1.10）。
 9. **✅ 技术路线已决定**：用户接受当前 Electron 路线，暂不做 WebView2/其他技术迁移；包含 current-task 修复的 installer 已重建并通过结构核验。
 10. **🟡 installer 真机验收部分通过**：用户已完成当前精简 installer 的真实安装、卸载且未报告异常；下一步只确认设置保留、桌面/开始菜单快捷方式与 portable 回退。跨版本升级需等下一版本包。
+11. **✅ v1.0.0 首个正式版已发布**：非草稿、非预发布、Latest；标签与发布提交均为 `9628a7b8b0f43d9713e5e867d8591984570f7dab`，远端包含 installer 与 portable，大小与本地完全一致。
 
-- portable 真机验收已经完成，但不要把 installer 构建/结构校验写成安装、卸载或升级通过；完整 Phase 8 Gate 仍需第 10 项、跨版本升级、签名决策及剩余系统级场景完成后再判定。
-- 注：Milestone H 切片 1/2/3、四态交互、共享玻璃、三形态展示入口/动态图标和精简 portable 均已完成真机确认。`npm run check` 现整体 exit 0，621 绿；current-task installer 已重建，结构核验及用户真实安装/卸载通过。
+- 用户已授权在代码签名、跨版本升级和剩余硬件矩阵延期的前提下定位为首个正式版；这些项目作为已知限制保留，不得反写成已经通过。
+- 注：Milestone H 切片 1/2/3、四态交互、共享玻璃、三形态展示入口/动态图标、current-task、portable 与 installer 安装/卸载均已完成确认。v1.0.0 完整 `npm run check` 为 621 绿。
 
 ## 9. 哪些坑不要再踩
 

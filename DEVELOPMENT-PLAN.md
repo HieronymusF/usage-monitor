@@ -516,9 +516,9 @@ Gate：重启后偏好和位置恢复；中英文核心流程完整。
 - E2E、视觉回归、性能、安全和升级/回退验证。
 - README 与发布说明。
 
-当前进度（2026-07-26）：Electron portable 已完成最终真机验收。排除运行时不需要的 `node_modules` 并只保留中英文 Electron 语言包后，portable 从 103.1 MiB 降至 78.5 MiB；首个精简候选的“当前任务”空值已修复为最近活动 session 的末次 `total_tokens`，同时保持跨 session lifetime 独立。自动质量门 621/621，打包态返回 current/lifetime 独立数值，用户已确认 UI 正常。包含 current-task 修复的 setup 为 87.3 MiB、解包 303.0 MiB，用户已完成真实安装和卸载且未报告异常，并决定保留 Electron、暂不做技术迁移。设置保留、快捷方式、portable 回退、代码签名和跨版本升级仍未全部验收。
+当前进度（2026-07-26）：`v1.0.0` 首个正式 GitHub Release 已发布，非草稿、非预发布并标记 Latest；同时提供 78.5 MiB portable 与 78.8 MiB NSIS installer，远端资产字节数和本地一致。排除运行时不需要的 `node_modules` 后，asar 为 1.2 MiB、解包约 303.0 MiB；文件/产品/asar 版本均为 1.0.0。自动质量门 621/621，current/lifetime 独立，portable UI 与 installer 安装/卸载均已由用户确认。代码签名、跨版本升级、设置/回退细项及部分硬件矩阵作为已知限制延期。
 
-Gate：完整功能对照矩阵全部通过后才能称为 Beta；全部发布门槛通过后才能替代旧 release。
+Gate：v1.0.0 已按用户决定作为首个正式版发布；代码签名、跨版本升级和延期硬件项仍须保留为已知限制，旧 WPF 回滚版暂不删除。
 
 ## 16. 功能对等矩阵
 
@@ -540,7 +540,7 @@ Gate：完整功能对照矩阵全部通过后才能称为 Beta；全部发布�
 | 开机启动        | 完整         | H 切片 2 真机通过：启用后自启，取消后重启不再启动                | Electron 原生链路           |
 | 设置持久化      | 完整         | schema v3 偏好/placement 与迁移已测；重启位置恢复真机通过        | 含迁移                      |
 | i18n            | 无           | E-F 真机通过（中英文切换 + 持久化）                              | 中英文完整                  |
-| 打包发布        | WPF portable | Electron portable 真机通过；NSIS 安装/卸载通过，设置/升级回退待验 | Electron portable/installer |
+| 打包发布        | WPF portable | v1.0.0 正式 Release 已发布，含 portable + installer；升级待验     | Electron portable/installer |
 
 ## 17. Definition of Done
 
@@ -729,7 +729,7 @@ Gate：完整功能对照矩阵全部通过后才能称为 Beta；全部发布�
 
 按以下顺序继续：
 
-1. Electron 体积边界已接受，WebView2/其他技术迁移暂缓；current-task、portable、installer 安装/卸载均无需重复测试。
-2. 若继续补 Phase 8 Gate，只核对快捷方式、打包态设置保留和回退到旧 portable/WPF；真正的跨版本覆盖升级留下一版本 setup 出现后实测。
-3. 决定未签名 Beta 是否允许内部发布；未通过代码签名/升级 Gate 前不退役旧 WPF。
+1. v1.0.0 已正式发布；观察实际下载、安装和使用反馈，不重复 current-task、portable 或 installer 安装/卸载验收。
+2. 下一个版本出现后，优先验证 v1.0.0 → 新版的覆盖升级与设置保留。
+3. 需要降低 SmartScreen 风险时补 Windows 代码签名；签名前继续在发布说明中标注未知发布者提示。
 4. 有对应硬件时补双屏内部接缝、侧边任务栏、原显示器断开与混合 DPI 真机验收。
