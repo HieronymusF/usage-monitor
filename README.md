@@ -7,13 +7,13 @@
 
 桌面端目前有**两套 Windows UI 实现**，共用同一份只读数据核心（`server/`）：
 
-|                                                              | Electron 应用（Beta 候选）                 | WPF 伴生程序（当前回滚版）             |
+|                                                              | Electron 应用（v1.0 正式版）               | WPF 伴生程序（当前回滚版）             |
 | ------------------------------------------------------------ | ------------------------------------------ | -------------------------------------- |
 | 代码                                                         | `electron/` + `renderer/`                  | `companion/`（PowerShell + XAML）      |
 | 四种 surface                                                 | ✅                                         | ✅                                     |
-| 自动前台切换 / 托盘菜单 / 开机自启 / portable / installer    | ✅（installer 安装/卸载已通过）            | ✅ portable                            |
+| 自动前台切换 / 托盘菜单 / 开机自启 / portable / installer    | ✅                                         | ✅ portable                            |
 | 启动                                                         | `npm run dev` / portable / NSIS setup      | `npm run companion` / 旧便携 exe       |
-| 定位                                                         | portable 已验收；installer 发布 Gate 收尾  | 当前回滚版                             |
+| 定位                                                         | 首个正式版；提供 installer 与 portable     | 当前回滚版                             |
 
 ## Electron 桌面应用（`npm run dev`）
 
@@ -48,10 +48,10 @@ npm run dev
 # 分别构建 Electron portable / installer：
 npm run check
 npm run dist:portable
-.\release\usage-monitor-portable-0.2.0.exe
+.\release\usage-monitor-portable-1.0.0.exe
 
 npm run dist:installer
-.\release\usage-monitor-setup-0.2.0.exe
+.\release\usage-monitor-setup-1.0.0.exe
 
 # 同时构建两种分发包：
 npm run dist
@@ -59,7 +59,7 @@ npm run dist
 
 NSIS installer 使用可见安装向导，默认当前用户安装，可选择安装目录，并创建桌面与开始菜单快捷方式。卸载程序默认保留打包版的 `%APPDATA%\Usage Monitor\settings.json`，便于升级或回退后恢复偏好。安装/回退验收步骤与当前限制见 [`RELEASE_NOTES.md`](RELEASE_NOTES.md)。
 
-精简后的 Electron portable 为 78.5 MiB，setup 为 87.3 MiB，运行/解包约 303.0 MiB；这已经排除全部运行时不需要的 `node_modules`，并只保留简中/英文语言包。剩余体积主要来自 Electron/Chromium。若产品目标是几十 MiB 级文件且运行占用也低，应迁移到原生 Windows/WPF 或 WebView2/Tauri，而不是继续微调 Electron 打包参数。
+v1.0.0 的 Electron portable 为 78.5 MiB，setup 为 78.8 MiB，运行/解包约 303.0 MiB；这已经排除全部运行时不需要的 `node_modules`，并只保留简中/英文语言包。剩余体积主要来自 Electron/Chromium。若产品目标是几十 MiB 级文件且运行占用也低，应迁移到原生 Windows/WPF 或 WebView2/Tauri，而不是继续微调 Electron 打包参数。
 
 ### 当前状态与待验收项
 
@@ -67,7 +67,7 @@ NSIS installer 使用可见安装向导，默认当前用户安装，可选择�
 - **开机自启**已通过托盘 checkbox 接入 Electron 的 Windows 登录项 API。portable 会注册用户双击的外层 exe，不注册临时解包目录；开发模式和非 Windows 环境不会修改登录项。
 - **正式图标**包含 16–256px 九档分辨率，同时用于托盘和 portable exe；资源缺失时才回退内嵌占位图。
 - **per-surface 位置持久化**保存工作区相对坐标、显示器 ID 和贴边状态；显示器断开或 workArea/DPI 变化时回退并限制在可见区域。Orb 仅在真实物理外边缘半隐藏；多显示器内部接缝或侧边任务栏处保持完整可见。坐标仅由 Electron 主进程写入，不开放 renderer 坐标设置接口。
-- **Electron portable**已完成真机验收：三形态展示菜单、动态托盘额度、切换与重启偏好正常；精简 portable 从 103.1 MiB 降至 78.5 MiB；“当前任务”读取最近活动 session 的末次 `total_tokens`，同时保持 lifetime 独立，用户已确认显示正常。用户已接受约 303 MiB 的 Electron 运行/安装下限并完成 installer 的真实安装、卸载；快捷方式、打包态设置保留、portable 回退和跨版本升级仍未全部确认。双屏内部接缝、显示器断开与混合 DPI 留有对应硬件时复验。
+- **Electron v1.0.0**定位为首个正式版，同时提供 x64 portable 与 NSIS installer。三形态展示菜单、动态托盘额度、切换与重启偏好已真机通过；“当前任务”读取最近活动 session 的末次 `total_tokens`，同时保持 lifetime 独立。用户已接受约 303 MiB 的 Electron 运行/安装下限并完成 installer 的真实安装、卸载。双屏内部接缝、显示器断开、混合 DPI 与真正跨版本升级留后续版本复验。
 
 ## WPF 伴生程序（当前发行版，`companion/`）
 
