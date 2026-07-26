@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -68,6 +68,48 @@ test("delta math is correct across incremental reads and a counter reset", async
   const reader = new CodexSessionLogReader({ logRoot: sessions, cachePath: cache, now: () => new Date("2026-07-15T12:00:00.000Z") });
   const result = await reader.read(7);
   assert.equal(result.tokenUsage.lifetimeTotal, 30);
+});
+
+test("Codex reader reports the newest session counter as current task without changing lifetime", async () => {
+  const root = await mkdtemp(join(tmpdir(), "usage-current-task-"));
+  const sessions = join(root, "sessions");
+  await mkdir(sessions);
+  const older = join(sessions, "older.jsonl");
+  const current = join(sessions, "current.jsonl");
+  await writeFile(older, `${event(100, "2026-07-15T01:00:00.000Z")}\n`);
+  await writeFile(current, `${event(20, "2026-07-15T02:00:00.000Z")}\n`);
+  await utimes(older, new Date("2026-07-15T01:00:00.000Z"), new Date("2026-07-15T01:00:00.000Z"));
+  await utimes(current, new Date("2026-07-15T02:00:00.000Z"), new Date("2026-07-15T02:00:00.000Z"));
+
+  const reader = new CodexSessionLogReader({
+    logRoot: sessions,
+    cachePath: join(root, "cache.json"),
+    now: () => new Date("2026-07-15T12:00:00.000Z"),
+  });
+  const result = await reader.read(7);
+  assert.equal(result.tokenUsage.total, 20);
+  assert.equal(result.tokenUsage.lifetimeTotal, 120);
+});
+
+test("Codex reader does not reuse an older task when the newest session has no token count", async () => {
+  const root = await mkdtemp(join(tmpdir(), "usage-empty-current-task-"));
+  const sessions = join(root, "sessions");
+  await mkdir(sessions);
+  const older = join(sessions, "older.jsonl");
+  const current = join(sessions, "current.jsonl");
+  await writeFile(older, `${event(100)}\n`);
+  await writeFile(current, `${JSON.stringify({ type: "session_meta", payload: { id: "empty" } })}\n`);
+  await utimes(older, new Date("2026-07-15T01:00:00.000Z"), new Date("2026-07-15T01:00:00.000Z"));
+  await utimes(current, new Date("2026-07-15T02:00:00.000Z"), new Date("2026-07-15T02:00:00.000Z"));
+
+  const reader = new CodexSessionLogReader({
+    logRoot: sessions,
+    cachePath: join(root, "cache.json"),
+    now: () => new Date("2026-07-15T12:00:00.000Z"),
+  });
+  const result = await reader.read(7);
+  assert.equal(result.tokenUsage.total, null);
+  assert.equal(result.tokenUsage.lifetimeTotal, 100);
 });
 
 test("Codex reader recovers the newest persisted Pro rate-limit snapshot", async () => {

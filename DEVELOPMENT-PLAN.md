@@ -516,7 +516,7 @@ Gate：重启后偏好和位置恢复；中英文核心流程完整。
 - E2E、视觉回归、性能、安全和升级/回退验证。
 - README 与发布说明。
 
-当前进度（2026-07-25）：Electron portable 已可构建并通过核心 UI/bridge、正式应用图标、开机启动启用/取消及重启位置恢复真机验收。installer、升级/回退、剩余系统级场景和完整发布 Gate 尚未完成。
+当前进度（2026-07-26）：Electron portable 已完成最终真机验收。排除运行时不需要的 `node_modules` 并只保留中英文 Electron 语言包后，portable 从 103.1 MiB 降至 78.5 MiB；首个精简候选的“当前任务”空值已修复为最近活动 session 的末次 `total_tokens`，同时保持跨 session lifetime 独立。自动质量门 621/621，打包态返回 current/lifetime 独立数值，用户已确认 UI 正常。包含 current-task 修复的 setup 为 87.3 MiB、解包 303.0 MiB，用户已完成真实安装和卸载且未报告异常，并决定保留 Electron、暂不做技术迁移。设置保留、快捷方式、portable 回退、代码签名和跨版本升级仍未全部验收。
 
 Gate：完整功能对照矩阵全部通过后才能称为 Beta；全部发布门槛通过后才能替代旧 release。
 
@@ -540,7 +540,7 @@ Gate：完整功能对照矩阵全部通过后才能称为 Beta；全部发布�
 | 开机启动        | 完整         | H 切片 2 真机通过：启用后自启，取消后重启不再启动                | Electron 原生链路           |
 | 设置持久化      | 完整         | schema v3 偏好/placement 与迁移已测；重启位置恢复真机通过        | 含迁移                      |
 | i18n            | 无           | E-F 真机通过（中英文切换 + 持久化）                              | 中英文完整                  |
-| 打包发布        | WPF portable | Electron portable 已构建/核心真机通过；installer/升级回退待做    | Electron portable/installer |
+| 打包发布        | WPF portable | Electron portable 真机通过；NSIS 安装/卸载通过，设置/升级回退待验 | Electron portable/installer |
 
 ## 17. Definition of Done
 
@@ -729,6 +729,7 @@ Gate：完整功能对照矩阵全部通过后才能称为 Beta；全部发布�
 
 按以下顺序继续：
 
-1. 先退出当前仍在运行的旧 portable，再启动 `release/candidate-final/usage-monitor-portable-0.2.0.exe`：分别在 Card、Indicator Bar、展开后的 EdgeCapsule 打开 Auto / Card / Bar / Orb 菜单并确认切换及重启偏好；同时确认当前 99% 托盘图标接近满环、刷新后会动态更新。代码、615 项测试、PNG 解码和打包后 `app.asar` 标记已验证。
-2. 补 installer、升级/回退和发布说明，通过 Phase 8 Gate 后再讨论旧 WPF 退役。
-3. 有对应硬件时补双屏内部接缝、侧边任务栏、原显示器断开与混合 DPI 真机验收。
+1. Electron 体积边界已接受，WebView2/其他技术迁移暂缓；current-task、portable、installer 安装/卸载均无需重复测试。
+2. 若继续补 Phase 8 Gate，只核对快捷方式、打包态设置保留和回退到旧 portable/WPF；真正的跨版本覆盖升级留下一版本 setup 出现后实测。
+3. 决定未签名 Beta 是否允许内部发布；未通过代码签名/升级 Gate 前不退役旧 WPF。
+4. 有对应硬件时补双屏内部接缝、侧边任务栏、原显示器断开与混合 DPI 真机验收。

@@ -70,9 +70,10 @@ export class CodexSource implements ClientUsageSource {
     // Read them first so the snapshot is useful even without an app-server.
     const local = await this.logReader.read(30);
     warnings.push(...local.warnings);
-    // Local aggregation is lifetime usage, not the currently open task. Keep
-    // the lifetime/daily fields but do not mislabel the aggregate as current.
-    let tokenUsage: TokenUsage = { ...local.tokenUsage, total: null };
+    // The local reader keeps lifetime aggregation separate from the final
+    // counter of the most recently written session, which represents the best
+    // available read-only signal for the task active in Codex desktop.
+    let tokenUsage: TokenUsage = local.tokenUsage;
 
     // Quota comes only from the public app-server surface. Authentication stays
     // inside Codex; this plugin never reads or forwards login credentials.

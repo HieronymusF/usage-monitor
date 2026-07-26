@@ -249,13 +249,13 @@ TypeScript JSX 解析器在某些上下文（特别是属性值里嵌套 `${}`�
 - 外部运行时探测必须验证“从产品实际父进程上下文成功启动并完成一次请求”，不能只做 `where` / `existsSync`。
 - 若官方桌面端已把只读状态写入本地事件，可把该官方快照作为受限执行环境的降级源；只读所需数值/枚举字段，明确标注来源，绝不读取凭据或正文。
 - 套餐、计费模式、模型等用户身份状态必须从快照派生；未知时显示中性产品名，不得写死 Plus/Pro。
-- lifetime 聚合不得复用为 current-task；无法取得当前任务值时返回 `null`。
+- lifetime 聚合不得复用为 current-task。外部 Codex app-server 无法提供线程事件时，当前任务只取最近写入 session 的末次 `token_count.info.total_token_usage.total_tokens`；最新 session 没有 token 事件时返回 `null`，不得回退到更旧任务。
 
-**验证方法**：在目标 Windows 安装形态下实际 spawn 一次运行时；再用打包后的 Electron-as-node bridge 请求 `/usage`，断言 HTTP 200、`planType`/窗口/来源正确、current-task 与 lifetime 可区分；Card 和 Edge Capsule 均用 Pro fixture 断言不出现 Plus。
+**验证方法**：在目标 Windows 安装形态下实际 spawn 一次运行时；再用打包后的 Electron-as-node bridge 请求 `/usage`，断言 HTTP 200、`planType`/窗口/来源正确、current-task 与 lifetime 可区分。日志测试至少覆盖两个 session（最新 session 的末次 counter 是 current，所有 delta 之和是 lifetime）以及“最新空 session 不偷用旧任务”；Card 和 Edge Capsule 均用 Pro fixture 断言不出现 Plus。
 
-**证据**：2026-07-24 portable Codex 修复。包外执行 Windows Store `codex.exe app-server` 复现 `Access is denied`；本机最新 `token_count.rate_limits` 返回 `plan_type=pro`。修复后打包 bridge 返回 Pro、每周配额及 `currentTask=null`，完整 `npm run check` exit 0。
+**证据**：2026-07-24 包外执行 Windows Store `codex.exe app-server` 复现 `Access is denied`；本机最新 `token_count.rate_limits` 返回 `plan_type=pro`。初次修复为避免把约 1B lifetime 冒充 current 而返回 `null`，2026-07-26 用户真机指出“当前任务”长期为空；补充 per-session 读取后，真实日志返回 current 57,275,488 / lifetime 1,476,550,183，打包 Electron-as-node 同样通过，完整 `npm run check` 621/621，用户确认新 portable 显示正常。
 
-**最后确认**：2026-07-24（Asia/Hong_Kong）。
+**最后确认**：2026-07-26（Asia/Hong_Kong）。
 
 ## L16. portable 开机自启必须注册外层稳定 exe
 
@@ -340,6 +340,20 @@ TypeScript JSX 解析器在某些上下文（特别是属性值里嵌套 `${}`�
 **证据**：2026-07-26 动态 32×32 PNG 在 Electron 中解码为 `empty=false`；新 portable 已生成，当前 99% 真机视觉待用户确认。
 
 **最后确认**：2026-07-26。
+
+## L21. Electron 发布验收必须同时记录下载体积和解包体积
+
+**失败模式**：NSIS setup 能构建、结构完整、自动质量门全绿，但首个候选安装后占用过大，不符合“轻量检测工具”的产品定位。发布说明只记录了 setup 文件大小，没有把解包/安装体积当成 Gate。
+
+**根因**：`execution-gap`（主因）+ `information-gap`（次因）。执行 Phase 8 时没有在用户试装前测量 `win-unpacked`、`app.asar` 和主要目录；产品也尚未给出明确的 MiB 预算，但“轻量级”已足以要求先量化而不是直接交付。
+
+**预防规则**：每个 Electron 候选在交付前必须记录 setup bytes、解包 bytes、`app.asar` bytes、locale bytes 和前五大体积来源；与上一个候选比较并标出增长率。若编译产物只依赖 Electron、Node built-ins 和本地 bundle，发布配置必须排除 `node_modules`；语言包只保留产品实际支持的 locale。超过产品预算时先暴露 Electron/Chromium 的技术下限，不把安装成功写成发布可接受。
+
+**验证方法**：构建到全新输出目录；递归汇总 `win-unpacked`，列出一级目录/文件；用 asar 清单断言 `node_modules` 为 0 且 main/preload/renderer/bridge 均存在；用打包后的 Electron-as-node 从 asar 加载业务模块；最后跑完整 `npm run check`。如果精简后仍超预算，停止微调并发起 Electron 与原生 Windows/WPF、WebView2/Tauri 的架构决策。
+
+**证据**：2026-07-26 首个候选 setup 131,161,035 bytes、portable 108,069,790 bytes、解包 559,603,413 bytes；其中 `app.asar` 195,387,148 bytes、locale 48,908,547 bytes。精简后 setup / portable / 解包 / asar / locale 分别为 91,535,149 / 82,322,234 / 317,669,117 / 1,223,648 / 1,137,751 bytes；current-task 修复后的完整 `npm run check` 621/621。
+
+**最后确认**：2026-07-26（Asia/Hong_Kong）。
 
 ## Milestone A 复验 8 反模式（A-H）
 

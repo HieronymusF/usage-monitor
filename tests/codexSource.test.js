@@ -63,7 +63,7 @@ test("Codex source uses app-server quota and remains available without local tok
   source.close();
 });
 
-test("Codex source falls back to persisted Pro quota without mislabeling lifetime as current task", async () => {
+test("Codex source combines persisted Pro quota with the latest local task without using lifetime as current", async () => {
   const client = new FakeAppServerClient();
   client.readRateLimits = async () => {
     client.rateLimitReads += 1;
@@ -73,7 +73,7 @@ test("Codex source falls back to persisted Pro quota without mislabeling lifetim
     ...emptyLocal,
     tokenUsage: {
       ...emptyLocal.tokenUsage,
-      total: 1_000_000_000,
+      total: 54_016_081,
       lifetimeTotal: 1_000_000_000,
       daily: [{ date: "2026-07-24", tokens: 36_400_000 }],
       source: "local_session",
@@ -103,7 +103,7 @@ test("Codex source falls back to persisted Pro quota without mislabeling lifetim
   assert.equal(snapshot.planType, "pro");
   assert.equal(snapshot.limits[0].remainingPercent, 95);
   assert.equal(snapshot.limits[0].source, "local_session");
-  assert.equal(snapshot.tokenUsage.total, null);
+  assert.equal(snapshot.tokenUsage.total, 54_016_081);
   assert.equal(snapshot.tokenUsage.lifetimeTotal, 1_000_000_000);
   assert.ok(snapshot.warnings.some((warning) => warning.code === "LOCAL_RATE_LIMIT_FALLBACK"));
   source.close();

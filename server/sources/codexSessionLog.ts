@@ -2,10 +2,11 @@ import { existsSync, promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { SessionLogReader, homeJoin } from "../sessionLogReader.js";
-import type { RawRateLimitBucket, RawRateLimitsResponse } from "../types.js";
+import type { LocalUsageResult, RawRateLimitBucket, RawRateLimitsResponse } from "../types.js";
 import type { TokenRecord } from "./types.js";
 
 const RATE_LIMIT_TAIL_BYTES = 2 * 1024 * 1024;
+const CURRENT_TASK_TAIL_BYTES = 2 * 1024 * 1024;
 const MAX_RATE_LIMIT_FILES = 32;
 
 export interface CodexRateLimitSnapshot {
@@ -47,6 +48,17 @@ export class CodexSessionLogReader extends SessionLogReader {
 
   protected endFile(): number | undefined {
     return this.lastTotal || undefined;
+  }
+
+  override async read(days = 30): Promise<LocalUsageResult> {
+    const result = await super.read(days);
+    return {
+      ...result,
+      tokenUsage: {
+        ...result.tokenUsage,
+        total: await this.readCurrentTaskTotal(),
+      },
+    };
   }
 
   protected parseRecord(line: string): TokenRecord | null {
@@ -146,6 +158,60 @@ export class CodexSessionLogReader extends SessionLogReader {
       }
     }
     return this.latestRateLimits;
+  }
+
+  /**
+   * The per-file `total_tokens` counter is one task, while the base reader
+   * accumulates all files into lifetime usage. The most recently written
+   * session is the best available read-only signal for the task active in an
+   * external Codex desktop process. If that newest session has no token event,
+   * keep the value unavailable instead of reusing an older task.
+   */
+  private async readCurrentTaskTotal(): Promise<number | null> {
+    if (!existsSync(this.logRoot)) return null;
+    let newest: { file: string; mtimeMs: number; size: number } | null = null;
+    for (const file of await this.listJsonl(this.logRoot)) {
+      try {
+        const stat = await fs.stat(file);
+        if (!newest || stat.mtimeMs > newest.mtimeMs) {
+          newest = { file, mtimeMs: stat.mtimeMs, size: stat.size };
+        }
+      } catch {
+        // A session may disappear between listing and stat; ignore it.
+      }
+    }
+    if (!newest) return null;
+
+    try {
+      const start = Math.max(0, newest.size - CURRENT_TASK_TAIL_BYTES);
+      const handle = await fs.open(newest.file, "r");
+      try {
+        const buffer = Buffer.alloc(newest.size - start);
+        const { bytesRead } = await handle.read(buffer, 0, buffer.length, start);
+        const lines = buffer.subarray(0, bytesRead).toString("utf8").split(/\r?\n/);
+        for (let index = lines.length - 1; index >= 0; index -= 1) {
+          const line = lines[index];
+          if (!line?.includes("token_count") || !line.includes("total_token_usage")) continue;
+          try {
+            const event = JSON.parse(line) as { type?: unknown; payload?: unknown };
+            if (event.type !== "event_msg" || !event.payload || typeof event.payload !== "object") continue;
+            const payload = event.payload as { type?: unknown; info?: unknown };
+            if (payload.type !== "token_count" || !payload.info || typeof payload.info !== "object") continue;
+            const usage = (payload.info as { total_token_usage?: unknown }).total_token_usage;
+            if (!usage || typeof usage !== "object") continue;
+            const total = (usage as { total_tokens?: unknown }).total_tokens;
+            return typeof total === "number" && Number.isFinite(total) && total >= 0 ? total : null;
+          } catch {
+            // The first tail line may be partial; malformed/non-token lines are ignored.
+          }
+        }
+      } finally {
+        await handle.close();
+      }
+    } catch {
+      // Active session files may briefly be unavailable while Codex writes.
+    }
+    return null;
   }
 
   private captureRateLimits(timestamp: unknown, raw: unknown): void {

@@ -1,6 +1,6 @@
 # HANDOFF — codex-usage-monitor
 
-> 最后更新：2026-07-26（Asia/Hong_Kong，**三形态展示模式入口对齐 + 动态托盘额度图标完成**）：Card、Indicator Bar、展开后的 EdgeCapsule 均可进入 Auto / Card / Indicator Bar / Orb 四态菜单；EdgeCapsule 原误放的刷新按钮已恢复为展示模式按钮，Indicator Bar 补齐该入口。托盘图标不再使用固定约 83% 的静态圆弧，现按 Codex 真实剩余额度动态绘制，ZCode/无配额时显示中性轨道。`npm run check` exit 0，**615 绿/0 失败**；独立新 portable 已生成。下一步是用户退出当前旧 portable 后启动新包，真机确认三形态菜单、99% 托盘圆环和重启持久化，再进入 installer、升级/回退与发布说明；多屏、侧边任务栏、显示器断开与混合 DPI 留后续硬件复验。详见 §4.1.9、§8.2。
+> 最后更新：2026-07-26（Asia/Hong_Kong，**current-task installer 真机安装/卸载通过**）：用户已确认 current-task 修复 portable 显示正常，接受当前 Electron 路线并暂不做 WebView2/其他技术迁移；随后确认新 installer 的真实安装、卸载均已试过且未报告异常。`npm run check` exit 0，**621 绿/0 失败**；portable 为 82,322,234 bytes（78.5 MiB），installer 为 91,535,840 bytes（87.3 MiB）。设置保留、快捷方式、portable 回退和跨版本升级未被本次用户反馈明确覆盖，继续标为未验证。详见 §4.1.4、§4.1.10、§8.2。
 > 项目：`D:\TokenUsage\plugins\codex-usage-monitor`
 > 发布目标：`main`。本轮发布范围统一包含三组关联改动：① Milestone H 打包骨架 + 切片 2 开机自启/正式图标 + 切片 3 位置持久化；② ZCode GLM-5.2 适配；③ portable Codex session 配额降级 + 动态套餐标题 + current/lifetime 语义修复。具体分支、提交与工作区状态必须以现场 Git 结果为准；不得回退任一组。
 
@@ -110,7 +110,7 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 
 **D-2 EdgeCapsule v30 状态**（已完成，详见 §5/§7）。
 
-**D-3 已完成真机验收**；后续 Milestone E-F+G、Milestone H 核心链路、共享玻璃材质及 Card 自动验收也已完成，当前下一步见 §8 的 portable 菜单快验与 Phase 8 发布收尾。
+**D-3 已完成真机验收**；后续 Milestone E-F+G、Milestone H 核心链路、共享玻璃材质及 Card 自动验收也已完成，当前下一步见 §8 的 installer 真机验收。
 
 ### 4.1.2 Milestone H 切片 1：Electron portable 打包骨架（代码完成，真机验证待用户，2026-07-24）
 
@@ -169,15 +169,16 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 - `CodexSessionLogReader.readLatestRateLimits()` 仅读 session 尾部 `event_msg/token_count/rate_limits` 的时间戳、套餐和配额数值；最多检查最近 32 个文件、每个尾部 2 MiB，不读取凭据/对话正文/工具参数。app-server 失败时 `CodexSource` 使用该官方落盘快照，并标记 `source=local_session` + `LOCAL_RATE_LIMIT_FALLBACK`。
 - normalizer 支持落盘事件的 `used_percent` / `window_minutes` / `resets_at` snake_case 字段，并保留实际来源。
 - `formatCodexBrand(planType)` 同时供 CardHeader 与 Edge Capsule 使用：Pro→`CODEX · PRO`，Plus→`CODEX · PLUS`，未知→`CODEX`。
-- local 聚合回退时 `tokenUsage.total=null`，继续保留 daily/lifetime；不再把 1B lifetime 冒充 current task。
+- local 聚合按所有 session delta 计算 daily/lifetime；`CodexSessionLogReader.read()` 另取最近写入 session 尾部的末次 `total_tokens` 作为本机估算 current task。最新 session 没有 token 事件时返回 `null`，不偷用旧任务；`CodexSource` 保留该 current 值，不再把 lifetime 冒充 current。
 
 **验证**：
 
 - 本机最新官方事件确认 `plan_type=pro`，窗口为 10080 分钟；实现后的真实 `CodexSource` 返回 Pro + 每周配额。
 - `npm run check` exit 0：`npm test` 513 绿 + `test:server` 52 绿 = **565 绿/0 失败**。
 - `npm run dist` 成功重建 `release/usage-monitor-portable-0.2.0.exe`（107,933,700 bytes，2026-07-24 18:24）。
-- 无界面启动打包后的 `release/win-unpacked/Usage Monitor.exe`（`ELECTRON_RUN_AS_NODE=1`）执行 `app.asar/dist/companionBridge.js`，`GET /usage` HTTP 200；当次返回 `planType=pro`、每周已用 6%/剩余 94%、`currentTask=null`、lifetime 保留。配额百分比会随 Codex 使用动态变化。
+- 2026-07-24 初版无界面验证证明打包 bridge 可返回 Pro / 周配额并避免把 lifetime 冒充 current，但当时 `currentTask=null`；该空值行为已由下述 2026-07-26 per-session 修复取代。
 - 未由 AI 启动 portable UI；新 exe 的最终视觉/交互仍由用户手动复验。
+- **2026-07-26 current-task 补充验证**：测试先出现 3 个预期失败（source 强制清空、reader 把 lifetime 放 total、最新空 session 复用 lifetime），修复后聚焦 9/9；真实日志返回 current 55,699,158 / lifetime 1,474,306,193，重建 portable 后打包 Electron-as-node 返回 current 57,275,488 / lifetime 1,476,550,183。完整质量门 621/621；用户已真机确认 UI 显示正常。
 
 ### 4.1.5 Milestone H 切片 2：开机自启 + 正式托盘图标（✅ 真机验收通过，2026-07-25）
 
@@ -254,7 +255,7 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 - portable：`release/usage-monitor-portable-0.2.0.exe`，108,068,580 bytes，2026-07-26 11:08:57 +08:00，SHA-256 `1492CF4FBE0CD1BDAF761E5C74F96E561DC2B443F55360C4BB29C80A9DD25370`。打包成功后无本项目残留进程。
 - AI 未启动生产 UI；当前会话的本地浏览器控制入口不可用，因此真实 CardHeader 点击通过 React DOM + store/IPC 测试验证，**新 portable 中的菜单点击与形态切换仍待用户快速真机确认**。主进程展示切换链路与已真机通过的托盘 displayPreference 共用同一 `commitPreference`。
 
-### 4.1.9 展示模式入口回归 + 动态托盘额度图标（代码与自动验证完成，真机待用户，2026-07-26）
+### 4.1.9 展示模式入口回归 + 动态托盘额度图标（真机验收通过，2026-07-26）
 
 **用户更正与根因**：
 
@@ -272,11 +273,30 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 - 测试先红后绿：聚焦组件/原生菜单/动态图标 52/52；完整 `npm run check` exit 0，`npm test` 563 + `test:server` 52 = **615 绿/0 失败**，typecheck、lint 183 文件、format、production build、plugin validation 全过。
 - 真实 Electron `nativeImage.createFromBuffer` 解码 99% PNG：`empty=false`、32×32；10%/80%/99% 像素测试确认彩色圆弧单调增长，中性态无蓝色额度弧。预览：`D:\Codex\UserData\.codex\visualizations\2026\07\26\019f9c4b-3eed-7a92-a369-0460a243adb5\tray-icon-fix\`。
 - 最终候选 portable：`release/candidate-final/usage-monitor-portable-0.2.0.exe`，108,069,790 bytes，2026-07-26 12:02:12 +08:00，SHA-256 `A3D23FD78EEAE9635EE85E593AF0126C0639AEDED8EBBDC7A11AA8D801F9A42B`。打包后的 `app.asar` 已确认包含主进程菜单通道、动态图标、preload 通道和 renderer 展示模式按钮。
-- **真机边界**：旧 portable 当前仍由用户运行并持有 Electron single-instance lock，AI 未停止它；capture 启动因此没有生成本轮 Bar/Capsule 新截图。用户必须先退出旧实例，再启动 `release/candidate-final`，确认原生菜单点击、形态切换、当前 99% 托盘圆环及刷新后的动态更新。
+- **真机验收（用户确认，2026-07-26）**：Card、Indicator Bar、展开后的 EdgeCapsule 都能打开四态菜单；Auto / Card / Bar / Orb 切换、退出重开后的偏好、99% 近满环和刷新后的动态更新均已试过并通过。
+
+### 4.1.10 Phase 8：NSIS installer 候选、体积修正与发布说明（Electron 路线已接受，current-task installer 已重建，2026-07-26）
+
+**实现**：
+
+- `package.json` 保留 x64 portable 并新增 x64 `nsis` target；portable 与 setup 分别命名为 `usage-monitor-portable-${version}.${ext}` / `usage-monitor-setup-${version}.${ext}`，新增 `dist:portable`、`dist:installer`，`dist` 同时构建两者。
+- NSIS 使用 assisted installer：`oneClick=false`、`perMachine=false`、允许提升和选择目录、创建桌面/开始菜单快捷方式、完成后可启动应用；`deleteAppDataOnUninstall=false`，卸载默认保留用户偏好。
+- `appId=com.hieronymusf.usage-monitor` 保持不变，由 electron-builder 派生稳定安装身份；0.2.0 是首个 NSIS 候选，跨版本覆盖升级只能在下一版本包出现后真测，当前不得标为通过。
+- README 已补 portable/installer/双产物命令，并新增根 `RELEASE_NOTES.md`，集中记录候选哈希、安装/卸载/回退步骤与未通过门槛。
+- 用户试装首个候选后指出体积不符合轻量工具定位。实测解包目录为 559,603,413 bytes（533.7 MiB）：其中 `app.asar` 186.3 MiB，误带的生产依赖占 178.1 MiB；全部 Electron locale 另占 46.6 MiB。
+- 编译产物静态审计确认主进程/preload/server 仅依赖 Electron、Node built-ins 和本地模块，因此 `build.files` 安全排除 `node_modules`；`electronLanguages` 只保留 `en-US` / `zh-CN`。配置契约固定该边界，避免以后回归。
+
+**验证**：
+
+- 配置契约新增体积边界后先 3/4（新断言红），实现后 4/4 绿；current-task 修复后完整 `npm run check` exit 0：`npm test` 567 + `test:server` 54 = **621 绿/0 失败**，typecheck、lint 184 文件、format、production build、plugin validation 全过。
+- 当前精简 portable：`release/portable-current-task-fix-20260726/usage-monitor-portable-0.2.0.exe`，82,322,234 bytes（78.5 MiB），SHA-256 `C695556A773A0DCD4F473AB466E90E90A4A8C2171B02A2779DF044C5D1B73A7C`；较最终旧候选 108,069,790 bytes 减少 23.8%。包内 asar 45 项、`node_modules` 为 0，所需 main/preload/renderer/bridge 全存在；打包 Electron-as-node 真实日志返回 current/lifetime 独立数值，用户已真机确认窗口 UI 正常。
+- 当前精简 installer：`release/installer-current-task-fix-20260726/usage-monitor-setup-0.2.0.exe`，91,535,840 bytes（87.3 MiB），SHA-256 `78B5618BCFE824E7873145FDE2FEF5CAF425FA8FA98FE13C981A06B822293C8B`；包含已通过 portable 真机确认的 current/lifetime 修复。
+- 当前解包目录为 317,674,802 bytes（303.0 MiB），`app.asar` 为 1,229,333 bytes（1.2 MiB）。asar 的 `node_modules` 条目为 0，主进程/preload/renderer/bridge 全存在；外部 `probe-daemon.ps1` 与正式图标均存在。
+- **发布边界**：精简候选仍为 `NotSigned`，可能触发 SmartScreen；AI 没有运行 installer 或 uninstaller，用户已确认真实安装、卸载均已试过且未报告异常。设置保留、快捷方式、portable 回退与跨版本升级仍需独立验收。剩余约 303 MiB 主要是 Electron/Chromium（仅主 exe 即 215.1 MiB）；若目标是几十 MiB 级安装体积，必须先切换技术架构。
 
 ### 4.2 卡点
 
-无。**之前 D-2 遗留的 EdgeCapsule 倒计时测试失败已在本轮修复**（ViewModel 加 now 字段，倒计时用注入时钟而非实时 Date）。
+无代码卡点。用户已接受当前 Electron 路线并决定暂不做 WebView2/其他技术迁移；真实安装、卸载已由用户完成。下一步只核对设置保留、快捷方式和 portable 回退。正式公开发布仍缺代码签名，真正跨版本覆盖升级要等下一版本包出现后验证。
 
 ### 4.3 运行环境
 
@@ -288,8 +308,8 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 
 ### 4.4 最近一次验证
 
-`npm run check`：**整体 exit 0**（2026-07-26，三形态展示模式入口与动态托盘图标完成后复跑）。typecheck ✓（server/desktop/tests 三 bucket）/ lint ✓（183 文件）/ format ✓ / **`npm test` = 563 绿 exit 0** / build ✓ / validate:plugin ✓ / **`test:server` = 52 绿 exit 0**。
-**测试总数**：**615 绿 / 0 失败**。另有 Card 六数据态 Light/Dark 固定视口 12 张 + 代表性缩放 capture 4 张复核、四形态共享玻璃 Light/Dark capture、展示入口/原生菜单/动态图标聚焦测试 52/52、真实 Electron `nativeImage` 32×32 PNG 解码、聚焦交互/位置/真实 PowerShell 协议 72/72、真实本机 CodexSource、打包后 companion bridge、最新 portable 构建/资源哈希及 `app.asar` 新链路标记验证通过（详见 §4.1.4–§4.1.9）。
+`npm run check`：**整体 exit 0**（2026-07-26，current-task 修复后复跑）。typecheck ✓（server/desktop/tests 三 bucket）/ lint ✓（184 文件）/ format ✓ / **`npm test` = 567 绿 exit 0** / build ✓ / validate:plugin ✓ / **`test:server` = 54 绿 exit 0**。
+**测试总数**：**621 绿 / 0 失败**。另有 current/lifetime 聚焦 9/9、installer 配置契约 4/4、精简包体积/哈希/签名状态、asar 零 `node_modules` 与主进程/preload/renderer/bridge 结构、打包 Electron-as-node 真实 current/lifetime 加载、Card 六数据态 Light/Dark 固定视口 12 张 + 代表性缩放 capture 4 张、四形态共享玻璃 Light/Dark capture、展示入口/原生菜单/动态图标聚焦测试 52/52、真实 Electron `nativeImage` 32×32 PNG 解码及既有真实 PowerShell 协议验证（详见 §4.1.4–§4.1.10）。
 **本轮修复（2026-07-24）**：时区测试失败修复（§4.1.1）→ `test:server` 48→49。**关于 format 的更正**：核实中一度看到 `format:check` 报 30 文件不符并据此判断"E-F+G commit 未跑 prettier"，**此判断错误**——在 HEAD `760cf2a` 干净树上 `format:check` 本就 exit 0 全过。那 30 文件的"不符"是中途 `prettier --write` 在 `core.autocrlf=true` + 无 `.gitattributes` 环境下引入的 CRLF/LF 行尾假象（`git diff -w` 显示零内容差异），经 `git stash` 规范化后消失，**这些文件无需也无可改动**（已全部还原）。真正阻塞 check 的只有时区测试那 1 个 server 失败，修后 check 整体 exit 0。教训见 §9 新增 lesson。**遗留建议（已落实）**：仓库原本无 `.gitattributes`，`core.autocrlf=true` 下任何 `prettier --write` 都会制造行尾假象。**本轮已新增 `.gitattributes`**（`* text=auto eol=lf` + `*.ps1 binary` 保护 BOM + 二进制资源显式 binary）并 `git add --renormalize` 规整，从根上消除该问题（详见 §9 L37）。
 **test 脚本拆分（E-F+G 轮）**：`npm test` 只含 4 个会绿的 bucket（build:server 前置 + renderer×3 + electron×1）；`test:server` 单独跑 server；`check` 末步跑 `test:server`。未用 `;` 串联（Windows cmd 不识别为分隔符）。时区测试修复后 server bucket 也 exit 0，check 末步不再拖黑。
 **全 IPC sender 校验（验收轮 4 P1）**：getUsage/refreshUsage/resizeCardWindow/showSurface 补齐校验，与既有 getPreferences/setPreference/moveOrb/dragOrbEnd/getOrbBounds/getContext 统一复用 preferences.ts 的 `requireTrustedSender`（invoke 类拒绝）/`allowTrustedSender`（send 类忽略+记录）。getUsage/refreshUsage 未知 sender reject（不读取/广播数据）；resizeCardWindow/showSurface 未知 sender 忽略+记录（不执行窗口副作用）；保留参数校验（codex/zcode、validateSurfaceKind）。+6 测试（preferences-integration：requireTrustedSender/allowTrustedSender 合法/未知）。
@@ -308,6 +328,8 @@ AGENTS.md                            安全 / 隐私 / 协作红线；UI 视觉�
 - ✅ **E-F+G 已通过**（2026-07-24 用户确认）：托盘菜单/偏好重启恢复/语言切换/displayPreference 启停 watcher/主题跟随全部手测通过。
 - ✅ **Milestone H 切片 2 已通过**（2026-07-25 用户确认）：正式图标正常；开机启动启用后生效，取消后重启不再启动。
 - ✅ **Milestone H 切片 3 核心交互与重启位置恢复已通过**（2026-07-24/25 用户确认）：固定/自动 Orb、四态交互、边缘/自由拖放、Capsule 收起及退出重开位置恢复正常。
+- ✅ **portable 最终菜单/动态图标验收通过**（2026-07-26 用户确认）：三形态四态菜单、形态切换、重启偏好、99% 托盘近满环与刷新更新正常。
+- 🟡 **installer 部分真机通过**：setup 已构建和结构验证，用户已完成真实安装、卸载且未报告异常；设置保留、快捷方式、portable 回退、跨版本升级与代码签名未完成。
 - ⚠️ **待验收 / 延期**：双屏、侧边任务栏、显示器断开与混合 DPI；token 级对比度审计已完成，Phase 6 的硬件矩阵仍未全覆盖。
 
 ### 4.5 v28 最终修正（2026-07-22，5 项）+ 已知限制
@@ -472,10 +494,13 @@ v28 修复 v27 复验指出的 5 项缺陷：
 4. **✅ 共享层玻璃材质整体优化 + 全量对比度审计完成**：Aurora 柔和衰减、内部高光、双层边缘、内部环境光晕和语义色对比度守护已完成；四形态 Light/Dark capture 通过（§4.1.7）。
 5. **✅ Card 剩余像素验收 + CardHeader 展示模式菜单代码完成**：禁用 `2×2` 已替换为 Fluent SVG 和四态菜单；展示偏好走既有主进程单一入口；12 张 Light/Dark Card + 4 张代表性缩放 capture 通过（§4.1.8）。
 6. **✅ Bar/Capsule 展示入口 + 动态托盘额度图标代码完成**：EdgeCapsule 刷新按钮恢复为展示模式，Bar 补齐入口；原生菜单与托盘共用四态模板；固定约 83% 静态弧改为真实额度 PNG，完整 `npm run check` 615/615，最终候选 portable 在 `release/candidate-final`（§4.1.9）。
-7. **【当前下一步】portable 快速真机确认 + Phase 8 发布收尾**：用户先退出仍在运行的旧 portable，再启动 `release/candidate-final`；在 Card、Bar、展开 Capsule 中分别打开四态菜单并切换，确认重启偏好；同时确认当前 99% 托盘接近满环且刷新后会更新。通过后补 installer、升级/回退和发布说明。
+7. **✅ portable 最终真机确认通过**：用户已确认 Card / Bar / Capsule 菜单、四态切换、重启偏好和 99% 动态托盘图标均正常（§4.1.9）。
+8. **✅ 精简 portable current-task 真机通过**：x64 portable 为 78.5 MiB，较旧候选减少 23.8%；current/lifetime 修复后 621/621，asar 与真实日志模块加载通过，用户确认“当前任务”显示正常（§4.1.4/§4.1.10）。
+9. **✅ 技术路线已决定**：用户接受当前 Electron 路线，暂不做 WebView2/其他技术迁移；包含 current-task 修复的 installer 已重建并通过结构核验。
+10. **🟡 installer 真机验收部分通过**：用户已完成当前精简 installer 的真实安装、卸载且未报告异常；下一步只确认设置保留、桌面/开始菜单快捷方式与 portable 回退。跨版本升级需等下一版本包。
 
-- 自动验收已完成，但不要把 React DOM/原生菜单模板测试或 PNG 解码写成 portable 真机确认；完整 Phase 8 Gate 仍需第 7 项、installer、升级/回退及剩余系统级场景完成后再判定。
-- 注：时区测试失败 + format 债已于 2026-07-24 修复（§4.1.1/§4.4）；Milestone H 切片 1/2/3、四态交互、共享玻璃和三形态展示入口/动态图标代码及打包均已完成。`npm run check` 现整体 exit 0，615 绿。
+- portable 真机验收已经完成，但不要把 installer 构建/结构校验写成安装、卸载或升级通过；完整 Phase 8 Gate 仍需第 10 项、跨版本升级、签名决策及剩余系统级场景完成后再判定。
+- 注：Milestone H 切片 1/2/3、四态交互、共享玻璃、三形态展示入口/动态图标和精简 portable 均已完成真机确认。`npm run check` 现整体 exit 0，621 绿；current-task installer 已重建，结构核验及用户真实安装/卸载通过。
 
 ## 9. 哪些坑不要再踩
 
